@@ -1,41 +1,5 @@
-# BASE DE DATOS
-## Iniciar DB
-docker compose up -d
-
----
-
-# BACKEND
-# Generar la Secret Key de JWT
-Ejecutar directamente en la terminal
-´´´ python -c "import secrets; print(secrets.token_hex(32))" ´´´
-y se generará automáticamente una key de 64 caractéres (válida para las condiciones en el config.py)
-
-# Crear backup
-docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Restaurar backup
-docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]
-
-# Conectar psql
-docker exec -it habitare-db psql -U habitare_admin -d habitare_db
-
----
-
-# SERVICIOS
-# Detener sevicios
-docker compose down
-
-# Detener y eliminar volúmenes (also delete información de la db)
-docker compose down -v
-
-# Listar logs
-docker compose logs [..pgadmin/postgres/backend..]
-
-# Ver estado de salud
-docker compose ps
 
 
----
 ---
 
 # Habitare Backend - Setup Guide
@@ -117,6 +81,17 @@ Servicios disponibles:
 - PgAdmin: `http://localhost:5050`
 - Backend API: `http://localhost:8000`
 - Docs: `http://localhost:8000/docs`
+
+### 3.1. Backups de la base de datos
+**Crear backup**
+´´´bash
+docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql
+´´´
+
+***Restaurar backup**
+´´´bash
+docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]
+´´´
 
 ### 4. Desarrollo local del backend
 
