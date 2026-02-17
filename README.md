@@ -84,14 +84,14 @@ Servicios disponibles:
 
 ### 3.1. Backups de la base de datos
 **Crear backup**
-´´´bash
+```bash
 docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql
-´´´
+```
 
 ***Restaurar backup**
-´´´bash
+```bash
 docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]
-´´´
+```
 
 ### 4. Desarrollo local del backend
 
