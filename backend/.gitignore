@@ -1,0 +1,13 @@
+# --- IGNORE DE BACKEND ---
+
+# Entornos virtuales
+env/
+venv/
+.env/
+.venv/
+
+# Testeos
+test/
+
+# Caché
+__pycache__/
