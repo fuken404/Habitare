@@ -1,0 +1,4 @@
+# --- IGNORE GENERAL ---
+
+# Variables de entorno
+.env
