@@ -11,6 +11,21 @@ from app.core.database.base import Base
 
 from app.modules.tenants.models import Tenant, Torre, Unidad
 from app.modules.users.models import Usuario, Rol, Permiso, RolPermiso, TenantUsuario
+from app.modules.visitors.models import Visitante, AutorizacionVisita, VehiculoVisitante, IngresoVisita
+from app.modules.subscriptions.models import Plan, Suscripcion, PagoSuscripcion
+from app.modules.packages.models import Paquete
+from app.modules.communications.models import Comunicado, SegmentacionComunicado
+from app.modules.pqrs.models import CategoriaPQRS, PQRS, MensajePQRS
+from app.modules.incidents.models import TipoIncidente, Incidente, ActualizacionIncidente
+from app.modules.parking.models import ParqueaderoResidente, VehiculoResidente, AsignacionParqueaderoResidente, SorteoRotacion, ParticipacionRotacion
+from app.modules.common_areas.models import ZonaComun, HorarioZonaComun, ReservaZonaComun
+from app.modules.shifts.models import Turno
+from app.modules.external_personnel.models import IngresoExterno
+from app.modules.visitor_parking.models import ParqueaderoVisitante
+from app.modules.notifications.models import Notificacion
+from app.modules.billing.models import Factura, Pago, TransaccionPago
+from app.modules.events.models import EventoOutbox
+from app.modules.audit.models import MinutaSistema, Archivo
 
 # --- Configuración Alembic ---
 config = context.config

@@ -11,6 +11,7 @@ pydantic-settings==2.7.0
 
 # --- Database ---
 sqlalchemy==2.0.36
+greenlet==3.3.1             # Dependencia para sqlalchemy
 alembic==1.14.0
 asyncpg==0.30.0             # Driver async para PostgreSQL
 psycopg2-binary==2.9.10     # Driver sync necesario para Alembic

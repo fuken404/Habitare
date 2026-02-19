@@ -3,5 +3,5 @@
 [x] database/session.py → conexión a PostgreSQL
 [x] main.py            → aplicación FastAPI base
 [x] Dockerfile         → contenedorizar el backend
-[ ] docker-compose.yml → levantar backend + DB juntos en desarrollo
-[ ] Alembic -> Todo el proceso de migraciones
+[x] docker-compose.yml → levantar backend + DB juntos en desarrollo
+[x] Alembic -> Todo el proceso de migraciones

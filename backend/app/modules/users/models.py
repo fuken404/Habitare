@@ -31,7 +31,7 @@ class TipoRol(str, enum.Enum):
   SUPERADMIN = "superadmin"
 
 # ======================================
-#           CREACIÓN USUARIOS
+#           CREACIÓN MODELOS
 # ======================================
 
 class Usuario(Base):
@@ -62,10 +62,6 @@ class Usuario(Base):
   # --- Relaciones ---
   membresias: Mapped[list["TenantUsuario"]] = relationship(back_populates="usuario")
 
-# ======================================
-#             CREACIÓN ROLES
-# ======================================
-
 class Rol(Base):
   __tablename__ = "roles"
   
@@ -87,10 +83,6 @@ class Rol(Base):
   permisos: Mapped[list["RolPermiso"]] = relationship(back_populates="rol")
   membresias: Mapped[list["TenantUsuario"]] = relationship(back_populates="rol")
 
-# ======================================
-#           CREACIÓN PERMISOS
-# ======================================
-
 class Permiso(Base):
   __tablename__ = "permisos"
   
@@ -109,10 +101,6 @@ class Permiso(Base):
   
   # --- Relaciones ---
   roles: Mapped[list["RolPermiso"]] = relationship(back_populates="permiso")
-
-# ======================================
-#          CREACIÓN ROLPERMISO
-# ======================================
 
 class RolPermiso(Base):
   __tablename__ = "rol_permiso"
@@ -137,10 +125,6 @@ class RolPermiso(Base):
   # --- Relaciones ---
   rol: Mapped["Rol"] = relationship(back_populates="permisos")
   permiso: Mapped["Permiso"] = relationship(back_populates="roles")
-
-# ======================================
-#         CREACIÓN TENANTUSUARIO
-# ======================================
 
 class TenantUsuario(Base):
   __tablename__ = "tenant_usuario"

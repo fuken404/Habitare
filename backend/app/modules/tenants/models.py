@@ -7,6 +7,10 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from app.core.database.base import Base
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+  from app.modules.subscriptions.models import Suscripcion
+
 # ======================================
 #             CREACIÓN ENUMS
 # ======================================
@@ -19,7 +23,7 @@ class TipoUnidad(str, enum.Enum):
   OTRO = "otro"
 
 # ======================================
-#            CREACIÓN TENANT
+#           CREACIÓN MODELOS
 # ======================================
 
 class Tenant(Base):
@@ -42,11 +46,7 @@ class Tenant(Base):
   # --- Relaciones ---
   torres: Mapped[list["Torre"]] = relationship(back_populates="tenant")
   unidades: Mapped[list["Unidad"]] = relationship(back_populates="tenant")
-  #suscripcion: Mapped["Suscripcion"] = relationship(back_populates="tenant")
-
-# ======================================
-#            CREACIÓN TORRES
-# ======================================
+  suscripcion: Mapped["Suscripcion"] = relationship(back_populates="tenant")
 
 class Torre(Base):
   __tablename__ = "torres"
@@ -69,10 +69,6 @@ class Torre(Base):
   # --- Relaciones ---
   tenant: Mapped["Tenant"] = relationship(back_populates="torres")
   unidades: Mapped[list["Unidad"]] = relationship(back_populates="torre")
-
-# ======================================
-#           CREACIÓN UNIDADES
-# ======================================
 
 class Unidad(Base):
   __tablename__ = "unidades"
