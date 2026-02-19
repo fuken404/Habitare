@@ -5,7 +5,7 @@
 # Habitare Backend - Setup Guide
 
 ## Prerequisitos
-- Python 3.12
+- Python 3.12 (Con UV en caso de ser necesario)
 - Docker y Docker Compose
 - PostgreSQL 16 (via Docker)
 
@@ -19,48 +19,48 @@ cd Habitare
 
 ### 2. Configurar variables de entorno
 
-**Archivo raíz: `Habitare/.env`** (para Docker Compose)
+**`.env`** (copia en raíz global y directorio backend)
 ```env
-ENVIRONMENT=development
-DEBUG=True
+# =================================
+#             APLICACIÓN
+# =================================
 
-POSTGRES_DB=habitare_db
-POSTGRES_USER=habitare_admin
-POSTGRES_PASSWORD=habitare_password
-POSTGRES_PORT=5432
-
-PGADMIN_EMAIL=admin@habitare.com
-PGADMIN_PASSWORD=word_2026
-PGADMIN_PORT=5050
-
-BACKEND_PORT=8000
-JWT_SECRET_KEY=<generar con: python -c "import secrets; print(secrets.token_hex(32))">
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
-JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
-ALLOWED_ORIGINS=["http://localhost:3000"]
-RATE_LIMIT_PER_MINUTE=60
-```
-
-**Archivo backend: `Habitare/backend/.env`** (para desarrollo local)
-```env
 APP_NAME=Habitare API
 APP_VERSION=0.1.0
 ENVIRONMENT=development
 DEBUG=True
 
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
+# =================================
+#           BASE DE DATOS
+# =================================
+
+# --- PostgreSQL ---
 POSTGRES_DB=habitare_db
 POSTGRES_USER=habitare_admin
-POSTGRES_PASSWORD=habitare_password
+POSTGRES_PASSWORD=
+POSTGRES_PORT=5432
 
-JWT_SECRET_KEY=<usar la misma clave del .env raíz>
+# --- PgAdmin ---
+PGADMIN_EMAIL=admin@habitare.com
+PGADMIN_PASSWORD=
+PGADMIN_PORT=5050
+
+# =================================
+#             BACKEND
+# =================================
+
+BACKEND_PORT=8000
+
+# --- JWT ---
+JWT_SECRET_KEY=<generar con: `python -c "import secrets; print(secrets.token_hex(32))"`>
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
 
+# --- CORS ---
 ALLOWED_ORIGINS=["http://localhost:3000"]
+
+# --- Rate limiting ---
 RATE_LIMIT_PER_MINUTE=60
 ```
 
@@ -116,6 +116,16 @@ pip install -r requirements.txt
 alembic current
 ```
 
+**Crear Migraciones Alembic**
+```bash
+alembic revision --autogenerate -m "nombre_del_archivo_a_generar"
+```
+
+**Aplicar alembic a la base de datos**
+```bash
+alembic upgrade head
+```
+
 **Correr backend en desarrollo:**
 ```bash
 uvicorn app.main:app --reload
@@ -123,21 +133,10 @@ uvicorn app.main:app --reload
 
 ### 5. Estado actual del proyecto
 
-**✅ Completado:**
+**✅ Completado Feb 19, 2026:**
 - Infraestructura base (Docker, PostgreSQL, pgAdmin)
 - Configuración de FastAPI + SQLAlchemy + Alembic
-- Modelos SQLAlchemy:
-  - `tenants`: Tenant, Torre, Unidad
-  - `users`: Usuario, Rol, Permiso, RolPermiso, TenantUsuario
-- Migración generada (no aplicada): `02e3cba95f6c_add_tenant_and_user_models.py`
-
-**⚠️ NO aplicar migraciones todavía** — Faltan 36 modelos por crear. La migración actual borraría esas tablas.
-
-**📋 Pendiente:**
-- Crear modelos para: visitantes, paquetes, comunicados, PQRS, parqueaderos, zonas comunes, etc.
-- Generar migración final con todos los modelos
-- Aplicar migración: `alembic upgrade head`
-- Implementar módulos de negocio (routers, services, schemas)
+- Modelos SQLAlchemy
 
 ## Comandos útiles
 
@@ -204,3 +203,5 @@ Habitare/
    - Local: `POSTGRES_HOST=localhost` (puerto mapeado)
 3. **Migrations pendientes:** NO correr `alembic upgrade head` hasta terminar todos los modelos
 4. **Generar JWT_SECRET_KEY:** `python -c "import secrets; print(secrets.token_hex(32))"`
+5. **Migraciones fallidas:**
+    - ENUMS: `fix_migration.py` actualiza la migración para permitir ENUMs, en caso de fallar, crear la migración con la base de datos vacía (sin tablas)
