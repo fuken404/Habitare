@@ -6,6 +6,8 @@ from app.config import settings
 from app.core.database.session import engine
 from app.core.database.base import Base
 
+from app.modules.auth.router import router as auth_router
+
 # --- Lifespan ---
 # Reemplaza los eventos on_startup / on_shutdown (deprecados en FastAPI >= 0.93)
 # Todo lo que esté antes del yield corre al arrancar.
@@ -38,6 +40,10 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
+
+# --- Declaración de las rutas de negocio ---
+app.include_router(auth_router)
+
 
 # --- Health check ---
 @app.get("/health", tags=["Sistema"])
