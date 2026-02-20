@@ -27,7 +27,7 @@ cd Habitare
 
 APP_NAME=Habitare API
 APP_VERSION=0.1.0
-ENVIRONMENT=development
+ENVIRONMENT=development # puede ser (development, staging o production)
 DEBUG=True
 
 # =================================
