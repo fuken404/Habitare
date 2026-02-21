@@ -100,40 +100,31 @@ docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup
 cd backend
 ```
 
-**Crear entorno virtual:**
+**Entorno Virtual Python Vanilla:**
 ```bash
 python -m venv env
 source env/bin/activate
 ```
-- En caso de utilizar uv, el entorno se crea con:
-    - `sudo apt install uv`
-    - `uv venv [nombre_del_entorno] --python3.12`
-    - `uv pip install -r requirements.txt`
+<sub>Creación del entorno</sub>
 
-**Instalar dependencias:**
 ```bash
 pip install -r requirements.txt
 ```
+<sub>Instalación de dependencias</sub>
 
-**Verificar Alembic:**
+**Entorno Virtual con Python Vanilla:**
 ```bash
-alembic current
+sudo apt install uv
+uv venv env --python3.12
+source env/bin/activate
 ```
+<sub>Creación del entorno</sub>
 
-**Crear Migraciones Alembic**
 ```bash
-alembic revision --autogenerate -m "nombre_del_archivo_a_generar"
+uv pip install -r requirements.txt
 ```
+<sub>Instalación de dependencias</sub>
 
-**Aplicar alembic a la base de datos**
-```bash
-alembic upgrade head
-```
-
-**Correr backend en desarrollo:**
-```bash
-uvicorn app.main:app --reload
-```
 
 ### 5. Estado actual del proyecto
 
