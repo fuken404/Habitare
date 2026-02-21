@@ -135,10 +135,10 @@ docker compose logs backend    # Ver logs del backend
 docker compose ps              # Estado de servicios
 ```
 
-**Base de Datos:**
+**Backups de la Base de Datos:**
 ```bash
-docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql    # Crear Backups
-docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]              # Restaurar Backups
+docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql    # Crear
+docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]              # Restaurar
 ```
 
 **Alembic:**
