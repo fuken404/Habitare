@@ -82,16 +82,6 @@ Servicios disponibles:
 - Backend API: `http://localhost:8000`
 - Docs: `http://localhost:8000/docs`
 
-### 3.1. Backups de la base de datos
-**Crear backup**
-```bash
-docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql
-```
-
-**Restaurar backup**
-```bash
-docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]
-```
 
 ### 4. Desarrollo local del backend
 
@@ -101,6 +91,7 @@ cd backend
 ```
 
 **Entorno Virtual Python Vanilla:**
+
 <sub>Creación del entorno</sub>
 ```bash
 python -m venv env
@@ -112,7 +103,8 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
-**Entorno Virtual con Python Vanilla:**
+**Entorno Virtual con Python UV:**
+
 <sub>Creación del entorno</sub>
 ```bash
 sudo apt install uv
@@ -141,6 +133,12 @@ docker compose up -d           # Levantar servicios
 docker compose down            # Detener servicios
 docker compose logs backend    # Ver logs del backend
 docker compose ps              # Estado de servicios
+```
+
+**Base de Datos:**
+```bash
+docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql    # Crear Backups
+docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]              # Restaurar Backups
 ```
 
 **Alembic:**
