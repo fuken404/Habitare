@@ -101,29 +101,29 @@ cd backend
 ```
 
 **Entorno Virtual Python Vanilla:**
+<sub>Creación del entorno</sub>
 ```bash
 python -m venv env
 source env/bin/activate
 ```
-<sub>Creación del entorno</sub>
 
+<sub>Instalación de dependencias</sub>
 ```bash
 pip install -r requirements.txt
 ```
-<sub>Instalación de dependencias</sub>
 
 **Entorno Virtual con Python Vanilla:**
+<sub>Creación del entorno</sub>
 ```bash
 sudo apt install uv
 uv venv env --python3.12
 source env/bin/activate
 ```
-<sub>Creación del entorno</sub>
 
+<sub>Instalación de dependencias</sub>
 ```bash
 uv pip install -r requirements.txt
 ```
-<sub>Instalación de dependencias</sub>
 
 
 ### 5. Estado actual del proyecto
