@@ -88,7 +88,7 @@ Servicios disponibles:
 docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
-***Restaurar backup**
+**Restaurar backup**
 ```bash
 docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]
 ```
@@ -105,6 +105,10 @@ cd backend
 python -m venv env
 source env/bin/activate
 ```
+- En caso de utilizar uv, el entorno se crea con:
+    - `sudo apt install uv`
+    - `uv venv [nombre_del_entorno] --python3.12`
+    - `uv pip install -r requirements.txt`
 
 **Instalar dependencias:**
 ```bash
