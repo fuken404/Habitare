@@ -81,7 +81,7 @@ async def autenticar_usuario(email: str, password: str, db: AsyncSession) -> Tok
   
   # Actualizar último acceso
   usuario.fecha_ultimo_acceso = datetime.now(timezone.utc)
-  await db.commit()
+  await db.flush()
   
   return TokenResponse(
     access_token=access_token,
