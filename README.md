@@ -120,10 +120,11 @@ uv pip install -r requirements.txt
 
 ### 5. Estado actual del proyecto
 
-**✅ Completado Feb 19, 2026:**
+**✅ Completado Feb 22, 2026:**
 - Infraestructura base (Docker, PostgreSQL, pgAdmin)
 - Configuración de FastAPI + SQLAlchemy + Alembic
 - Modelos SQLAlchemy
+- Módulo Auth & Tenants completos
 
 ## Comandos útiles
 
