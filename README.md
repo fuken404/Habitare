@@ -27,7 +27,7 @@ cd Habitare
 
 APP_NAME=Habitare API
 APP_VERSION=0.1.0
-ENVIRONMENT=development
+ENVIRONMENT=development # puede ser (development, staging o production)
 DEBUG=True
 
 # =================================
@@ -82,16 +82,6 @@ Servicios disponibles:
 - Backend API: `http://localhost:8000`
 - Docs: `http://localhost:8000/docs`
 
-### 3.1. Backups de la base de datos
-**Crear backup**
-```bash
-docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql
-```
-
-***Restaurar backup**
-```bash
-docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]
-```
 
 ### 4. Desarrollo local del backend
 
@@ -100,36 +90,33 @@ docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup
 cd backend
 ```
 
-**Crear entorno virtual:**
+**Entorno Virtual Python Vanilla:**
+
+<sub>Creación del entorno</sub>
 ```bash
 python -m venv env
 source env/bin/activate
 ```
 
-**Instalar dependencias:**
+<sub>Instalación de dependencias</sub>
 ```bash
 pip install -r requirements.txt
 ```
 
-**Verificar Alembic:**
+**Entorno Virtual con Python UV:**
+
+<sub>Creación del entorno</sub>
 ```bash
-alembic current
+sudo apt install uv
+uv venv env --python3.12
+source env/bin/activate
 ```
 
-**Crear Migraciones Alembic**
+<sub>Instalación de dependencias</sub>
 ```bash
-alembic revision --autogenerate -m "nombre_del_archivo_a_generar"
+uv pip install -r requirements.txt
 ```
 
-**Aplicar alembic a la base de datos**
-```bash
-alembic upgrade head
-```
-
-**Correr backend en desarrollo:**
-```bash
-uvicorn app.main:app --reload
-```
 
 ### 5. Estado actual del proyecto
 
@@ -146,6 +133,12 @@ docker compose up -d           # Levantar servicios
 docker compose down            # Detener servicios
 docker compose logs backend    # Ver logs del backend
 docker compose ps              # Estado de servicios
+```
+
+**Backups de la Base de Datos:**
+```bash
+docker exec habitare-db pg_dump -U habitare_admin habitare_db > ./backups/backup_$(date +%Y%m%d_%H%M%S).sql    # Crear
+docker exec -i habitare-db psql -U habitare_admin habitare_db < -/backups/backup_[..el_archivo..]              # Restaurar
 ```
 
 **Alembic:**
