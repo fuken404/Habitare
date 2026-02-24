@@ -11,6 +11,9 @@ from app.modules.tenants.router import router as tenants_router
 from app.modules.users.router import router as users_router
 from app.modules.visitors.router import router as visitors_router
 from app.modules.packages.router import router as packages_router
+from app.modules.parking.router import router as parking_router
+from app.modules.visitor_parking.router import router as visitor_parking_router
+
 
 # --- Lifespan ---
 # Reemplaza los eventos on_startup / on_shutdown (deprecados en FastAPI >= 0.93)
@@ -51,6 +54,8 @@ app.include_router(tenants_router)
 app.include_router(users_router)
 app.include_router(visitors_router)
 app.include_router(packages_router)
+app.include_router(parking_router)
+app.include_router(visitor_parking_router)
 
 # --- Health check ---
 @app.get("/health", tags=["Sistema"])
