@@ -8,6 +8,7 @@ from app.core.database.base import Base
 
 from app.modules.auth.router import router as auth_router
 from app.modules.tenants.router import router as tenants_router
+from app.modules.users.router import router as users_router
 
 # --- Lifespan ---
 # Reemplaza los eventos on_startup / on_shutdown (deprecados en FastAPI >= 0.93)
@@ -45,6 +46,7 @@ app.add_middleware(
 # --- Declaración de las rutas de negocio ---
 app.include_router(auth_router)
 app.include_router(tenants_router)
+app.include_router(users_router)
 
 # --- Health check ---
 @app.get("/health", tags=["Sistema"])

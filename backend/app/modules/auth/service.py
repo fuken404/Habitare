@@ -2,7 +2,6 @@ import uuid
 from datetime import datetime, timezone, timedelta
 
 from jose import jwt, JWTError
-from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -11,18 +10,11 @@ from app.config import settings
 from app.modules.users.models import Usuario, TenantUsuario
 from app.modules.auth.schemas import TokenResponse, TokenPayload, MeResponse
 from fastapi import HTTPException, status
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.core.security import verify_password
 
 # ======================================
 #           UTILIDADES INTERNAS
 # ======================================
-
-def _hash_password(password: str) -> str:
-  return pwd_context.hash(password)
-
-def _verify_password(plain: str, hashed: str) -> bool:
-  return pwd_context.verify(plain, hashed)
 
 def _create_token(data: dict, expires_delta: timedelta) -> str:
   payload = data.copy()
@@ -54,7 +46,7 @@ async def autenticar_usuario(email: str, password: str, db: AsyncSession) -> Tok
   )
   usuario = result.scalar_one_or_none()
   
-  if not usuario or not _verify_password(password, usuario.password):
+  if not usuario or not verify_password(password, usuario.password):
     raise HTTPException(
       status_code=status.HTTP_401_UNAUTHORIZED,
       detail="Credenciales incorrectas",
