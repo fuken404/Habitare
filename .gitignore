@@ -2,3 +2,6 @@
 
 # Variables de entorno
 .env
+
+#Entorno vscode
+.vscode/
