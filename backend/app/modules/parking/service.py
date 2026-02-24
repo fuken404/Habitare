@@ -104,19 +104,17 @@ async def listar_asignaciones(
 async def asignar_parqueadero(
     tenant_id: uuid.UUID, data: AsignacionCreate, db: AsyncSession
   ) -> AsignacionResponse:
-  # Validar que el parqueadero exista y pertenezca al tenant
   parqueadero = await repo.get_parqueadero_by_id(db, data.parqueadero_id, tenant_id)
   if not parqueadero:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parqueadero no encontrado")
-  
-  # Validar que no tenga asignación activa
+
   activa = await repo.get_asignacion_activa_parqueadero(db, data.parqueadero_id)
   if activa:
-      raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail="El parqueadero ya tiene una asignación activa"
-      )
-  
+    raise HTTPException(
+      status_code=status.HTTP_409_CONFLICT,
+      detail="El parqueadero ya tiene una asignación activa"
+    )
+
   asignacion = await repo.create_asignacion(db, {
     "tenant_id": tenant_id,
     "parqueadero_id": data.parqueadero_id,
@@ -159,7 +157,6 @@ async def crear_sorteo(
     "n_cupos": data.n_cupos,
     "estado": EstadoSorteo.PROGRAMADO,
   })
-  # Recargar con participaciones (vacías aún)
   sorteo = await repo.get_sorteo_by_id(db, sorteo.id, tenant_id)
   return SorteoResponse.model_validate(sorteo)
 
@@ -179,12 +176,17 @@ async def ejecutar_sorteo(
       status_code=status.HTTP_409_CONFLICT,
       detail="El sorteo no tiene participantes registrados"
     )
+
   # Selección aleatoria respetando n_cupos
   participantes = sorteo.participaciones
   ganadores = random.sample(participantes, min(sorteo.n_cupos, len(participantes)))
   ganadores_ids = {g.id for g in ganadores}
+
   for p in participantes:
     p.es_ganador = p.id in ganadores_ids
+
+  await db.flush()  # ← persiste los cambios de es_ganador antes de actualizar el estado
+
   await repo.update_sorteo(db, sorteo, {"estado": EstadoSorteo.EJECUTADO})
   sorteo = await repo.get_sorteo_by_id(db, sorteo_id, tenant_id)
   return SorteoResponse.model_validate(sorteo)
@@ -201,7 +203,6 @@ async def agregar_participacion(
       status_code=status.HTTP_409_CONFLICT,
       detail="Solo se pueden agregar participantes a sorteos en estado PROGRAMADO"
     )
-  # Evitar duplicados
   ya_inscrita = any(p.unidad_id == unidad_id for p in sorteo.participaciones)
   if ya_inscrita:
     raise HTTPException(

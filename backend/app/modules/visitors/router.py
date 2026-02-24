@@ -13,7 +13,7 @@ from app.modules.visitors.schemas import (
 )
 from app.modules.visitors import service as visitors_service
 
-router = APIRouter(tags=["Visitantes"])
+router = APIRouter(prefix="/visitors", tags=["Visitantes"])
 
 _ROLES_OPERACION = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
 _ROLES_ADMIN = (TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
