@@ -21,6 +21,8 @@ from app.modules.communications.router import router as communications_router
 from app.modules.events.router import router as events_router
 from app.modules.external_personnel.router import router as external_personnel_router
 from app.modules.notifications.router import router as notifications_router
+from app.modules.audit.router import router as audit_router
+from app.modules.billing.router import router as billing_router
 
 # --- Lifespan ---
 # Reemplaza los eventos on_startup / on_shutdown (deprecados en FastAPI >= 0.93)
@@ -71,6 +73,8 @@ app.include_router(communications_router)
 app.include_router(events_router)
 app.include_router(external_personnel_router)
 app.include_router(notifications_router)
+app.include_router(audit_router)
+app.include_router(billing_router)
 
 # --- Health check ---
 @app.get("/health", tags=["Sistema"])
