@@ -17,6 +17,8 @@ from app.modules.incidents.router import router as incidents_router
 from app.modules.pqrs.router import router as pqrs_router
 from app.modules.common_areas.router import router as common_areas_router
 from app.modules.shifts.router import router as shifts_router
+from app.modules.communications.router import router as communications_router
+
 
 # --- Lifespan ---
 # Reemplaza los eventos on_startup / on_shutdown (deprecados en FastAPI >= 0.93)
@@ -63,6 +65,7 @@ app.include_router(incidents_router)
 app.include_router(pqrs_router)
 app.include_router(common_areas_router)
 app.include_router(shifts_router)
+app.include_router(communications_router)
 
 # --- Health check ---
 @app.get("/health", tags=["Sistema"])
