@@ -38,15 +38,22 @@ async def listar_eventos(
     _: MeResponse = Depends(require_roles(*_ROLES_ADMIN)),
     db: AsyncSession = Depends(get_db),
   ):
-  """Lista eventos del outbox. Útil para monitoreo y debug."""
-  if estado == EstadoEvento.PENDIENTE or estado is None:
+  """
+  Lista eventos del outbox. Útil para monitoreo y debug.
+  - Sin filtro      → pendientes + fallidos.
+  - ?estado=pendiente → solo pendientes.
+  - ?estado=fallido   → solo fallidos con intentos < 3.
+  - ?estado=procesado → lista vacía (no se consultan por volumen).
+  """
+  if estado == EstadoEvento.PENDIENTE:
     items = await repo.get_pendientes(db, limite=100)
-    if estado is None:
-      fallidos = await repo.get_fallidos(db, max_intentos=99)
-      items = items + fallidos
+  elif estado == EstadoEvento.FALLIDO:
+    items = await repo.get_fallidos(db, max_intentos=99)
   else:
+    # None → todos los activos (pendientes + fallidos)
+    pendientes = await repo.get_pendientes(db, limite=100)
     fallidos = await repo.get_fallidos(db, max_intentos=99)
-    items = fallidos
+    items = pendientes + fallidos
   return [EventoResponse.model_validate(e) for e in items]
 
 @router.post("/process", status_code=status.HTTP_202_ACCEPTED)
