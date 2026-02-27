@@ -23,6 +23,7 @@ from app.modules.external_personnel.router import router as external_personnel_r
 from app.modules.notifications.router import router as notifications_router
 from app.modules.audit.router import router as audit_router
 from app.modules.billing.router import router as billing_router
+from app.modules.subscriptions.router import router as subscriptions_router
 
 # --- Lifespan ---
 # Reemplaza los eventos on_startup / on_shutdown (deprecados en FastAPI >= 0.93)
@@ -75,6 +76,7 @@ app.include_router(external_personnel_router)
 app.include_router(notifications_router)
 app.include_router(audit_router)
 app.include_router(billing_router)
+app.include_router(subscriptions_router)
 
 # --- Health check ---
 @app.get("/health", tags=["Sistema"])
