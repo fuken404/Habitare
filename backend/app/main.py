@@ -18,6 +18,7 @@ from app.modules.pqrs.router import router as pqrs_router
 from app.modules.common_areas.router import router as common_areas_router
 from app.modules.shifts.router import router as shifts_router
 from app.modules.communications.router import router as communications_router
+from app.modules.events.router import router as events_router
 
 
 # --- Lifespan ---
@@ -66,6 +67,7 @@ app.include_router(pqrs_router)
 app.include_router(common_areas_router)
 app.include_router(shifts_router)
 app.include_router(communications_router)
+app.include_router(events_router)
 
 # --- Health check ---
 @app.get("/health", tags=["Sistema"])
