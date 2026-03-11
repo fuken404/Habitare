@@ -3,9 +3,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.users import repository as repo
+from app.core.security import verify_password, hash_password
 from app.modules.users.schemas import (
   UsuarioCreate, UsuarioUpdate, UsuarioAdminUpdate,
   UsuarioResponse, AsignarUsuarioTenant, MembresiaResponse,
+  CambiarPasswordRequest,
 )
 
 async def listar_usuarios_tenant(tenant_id: uuid.UUID, db: AsyncSession) -> list[UsuarioResponse]:
@@ -68,6 +70,18 @@ async def asignar_a_tenant(
     fecha_fin=membresia.fecha_fin,
     created_at=membresia.created_at,
   )
+
+async def cambiar_password(
+  usuario_id: uuid.UUID, data: CambiarPasswordRequest, db: AsyncSession
+) -> None:
+  usuario = await repo.get_usuario_by_id(db, usuario_id)
+  if not usuario:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+  if not verify_password(data.password_actual, usuario.password):
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual es incorrecta")
+  nuevo_hash = hash_password(data.password_nueva)
+  await repo.update_usuario(db, usuario, {"password": nuevo_hash})
+
 
 async def remover_de_tenant(
   usuario_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession

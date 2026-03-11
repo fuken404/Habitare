@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.modules.users.models import Usuario, TenantUsuario
+from app.modules.tenants.models import Tenant, Unidad, Torre
 from app.modules.auth.schemas import TokenResponse, TokenPayload, MeResponse
 from fastapi import HTTPException, status
 from app.core.security import verify_password
@@ -18,7 +19,7 @@ from app.core.security import verify_password
 
 def _create_token(data: dict, expires_delta: timedelta) -> str:
   payload = data.copy()
-  now = datetime.now(timezone.utc)
+  now = datetime.utcnow()
   payload["exp"] = int((now + expires_delta).timestamp())
   payload["iat"] = int(now.timestamp())
   return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
@@ -61,9 +62,10 @@ async def autenticar_usuario(email: str, password: str, db: AsyncSession) -> Tok
   
   tenant_id = str(membresia_activa.tenant_id) if membresia_activa else None
   rol = membresia_activa.rol.nombre.value if membresia_activa else None
-  
+  unidad_id = str(membresia_activa.unidad_id) if membresia_activa else None
+
   access_token = _create_token(
-    {"sub": str(usuario.id), "tenant_id": tenant_id, "rol":rol, "type":"access"},
+    {"sub": str(usuario.id), "tenant_id": tenant_id, "rol": rol, "unidad_id": unidad_id, "type": "access"},
     timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
   )
   refresh_token = _create_token(
@@ -72,7 +74,7 @@ async def autenticar_usuario(email: str, password: str, db: AsyncSession) -> Tok
   )
   
   # Actualizar último acceso
-  usuario.fecha_ultimo_acceso = datetime.now(timezone.utc)
+  usuario.fecha_ultimo_acceso = datetime.utcnow()
   await db.flush()
   
   return TokenResponse(
@@ -107,9 +109,10 @@ async def refrescar_token(refresh_token: str, db: AsyncSession) -> TokenResponse
   )
   tenant_id = str(membresia_activa.tenant_id) if membresia_activa else None
   rol = membresia_activa.rol.nombre.value if membresia_activa else None
-  
+  unidad_id = str(membresia_activa.unidad_id) if membresia_activa else None
+
   new_access = _create_token(
-    {"sub": str(usuario.id), "tenant_id": tenant_id, "rol": rol, "type": "access"},
+    {"sub": str(usuario.id), "tenant_id": tenant_id, "rol": rol, "unidad_id": unidad_id, "type": "access"},
     timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
   )
   
@@ -139,6 +142,43 @@ async def obtener_usuario_actual(token: str, db: AsyncSession) -> MeResponse:
   if not usuario:
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
   
+  membresia_result = await db.execute(
+    select(TenantUsuario)
+    .where(
+      TenantUsuario.usuario_id == usuario.id,
+      TenantUsuario.is_activa.is_(True)
+    )
+    .order_by(TenantUsuario.created_at.desc())
+    .limit(1)
+  )
+  membresia = membresia_result.scalar_one_or_none()
+  unidad_id = membresia.unidad_id if membresia else None
+
+  # Datos del conjunto
+  nombre_conjunto: str | None = None
+  nombre_torre: str | None = None
+  numero_unidad: str | None = None
+
+  if payload.tenant_id:
+    tenant_result = await db.execute(
+      select(Tenant).where(Tenant.id == uuid.UUID(payload.tenant_id))
+    )
+    tenant = tenant_result.scalar_one_or_none()
+    if tenant:
+      nombre_conjunto = tenant.nombre
+
+  if unidad_id:
+    unidad_result = await db.execute(
+      select(Unidad)
+      .where(Unidad.id == unidad_id)
+      .options(selectinload(Unidad.torre))
+    )
+    unidad = unidad_result.scalar_one_or_none()
+    if unidad:
+      numero_unidad = unidad.numero
+      if unidad.torre:
+        nombre_torre = unidad.torre.nombre
+
   return MeResponse(
     id=usuario.id,
     email=usuario.email,
@@ -146,4 +186,103 @@ async def obtener_usuario_actual(token: str, db: AsyncSession) -> MeResponse:
     apellido=usuario.apellido,
     rol=payload.rol,
     tenant_id=uuid.UUID(payload.tenant_id) if payload.tenant_id else None,
+    unidad_id=unidad_id,
+    nombre_conjunto=nombre_conjunto,
+    nombre_torre=nombre_torre,
+    numero_unidad=numero_unidad,
   )
+
+
+async def solicitar_reset_password(email: str, db: AsyncSession) -> None:
+  import random
+  import string
+  from datetime import timedelta
+  from app.modules.auth.reset_models import PasswordResetCode
+  from app.core.email import send_email, build_reset_code_email
+
+  result = await db.execute(
+    select(Usuario).where(Usuario.email == email, Usuario.is_activo.is_(True))
+  )
+  usuario = result.scalar_one_or_none()
+  if not usuario:
+    raise HTTPException(
+      status_code=status.HTTP_404_NOT_FOUND,
+      detail="No existe una cuenta activa con ese correo electrónico",
+    )
+
+  # Invalidar códigos anteriores
+  await db.execute(
+    select(PasswordResetCode).where(
+      PasswordResetCode.usuario_id == usuario.id,
+      PasswordResetCode.usado.is_(False),
+    )
+  )
+  codigo = "".join(random.choices(string.digits, k=6))
+  expires_at = datetime.utcnow() + timedelta(minutes=15)
+
+  reset_code = PasswordResetCode(
+    usuario_id=usuario.id,
+    codigo=codigo,
+    expires_at=expires_at,
+  )
+  db.add(reset_code)
+  await db.flush()
+
+  await send_email(
+    to=email,
+    subject="Código de verificación - Habitare",
+    html_body=build_reset_code_email(usuario.nombre, codigo),
+  )
+
+
+async def verificar_reset_code(email: str, codigo: str, db: AsyncSession) -> bool:
+  from app.modules.auth.reset_models import PasswordResetCode
+
+  result = await db.execute(
+    select(Usuario).where(Usuario.email == email, Usuario.is_activo.is_(True))
+  )
+  usuario = result.scalar_one_or_none()
+  if not usuario:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código inválido o expirado")
+
+  result = await db.execute(
+    select(PasswordResetCode).where(
+      PasswordResetCode.usuario_id == usuario.id,
+      PasswordResetCode.codigo == codigo,
+      PasswordResetCode.usado.is_(False),
+      PasswordResetCode.expires_at > datetime.utcnow(),
+    )
+  )
+  reset_code = result.scalar_one_or_none()
+  if not reset_code:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código inválido o expirado")
+
+  return True
+
+
+async def reset_password(email: str, codigo: str, nueva_password: str, db: AsyncSession) -> None:
+  from app.modules.auth.reset_models import PasswordResetCode
+  from app.core.security import hash_password
+
+  result = await db.execute(
+    select(Usuario).where(Usuario.email == email, Usuario.is_activo.is_(True))
+  )
+  usuario = result.scalar_one_or_none()
+  if not usuario:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código inválido o expirado")
+
+  result = await db.execute(
+    select(PasswordResetCode).where(
+      PasswordResetCode.usuario_id == usuario.id,
+      PasswordResetCode.codigo == codigo,
+      PasswordResetCode.usado.is_(False),
+      PasswordResetCode.expires_at > datetime.utcnow(),
+    )
+  )
+  reset_code = result.scalar_one_or_none()
+  if not reset_code:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código inválido o expirado")
+
+  reset_code.usado = True
+  usuario.password = hash_password(nueva_password)
+  await db.flush()

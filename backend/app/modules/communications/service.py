@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -87,7 +87,7 @@ async def publicar_comunicado(
       )
   comunicado = await repo.update_comunicado(db, comunicado, {
     "estado": EstadoComunicado.PUBLICADO,
-    "fecha_publicacion": datetime.now(timezone.utc),
+    "fecha_publicacion": datetime.utcnow(),
   })
   comunicado = await repo.get_comunicado_by_id(db, comunicado_id, tenant_id)
   return ComunicadoResponse.model_validate(comunicado)

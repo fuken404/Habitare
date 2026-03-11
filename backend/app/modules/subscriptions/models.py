@@ -78,6 +78,11 @@ class Suscripcion(Base):
   created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)
   updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)
 
+  # --- Relaciones ---
+  plan: Mapped["Plan"] = relationship(back_populates="suscripciones")
+  pagos: Mapped[list["PagoSuscripcion"]] = relationship(back_populates="suscripcion")
+  tenant: Mapped["Tenant"] = relationship(back_populates="suscripcion")
+
 class PagoSuscripcion(Base):
   __tablename__ = "pago_suscripcion"
   

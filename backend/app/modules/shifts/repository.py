@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 
@@ -70,7 +70,7 @@ async def update_turno(
   ) -> Turno:
   for key, value in data.items():
     setattr(turno, key, value)
-  turno.updated_at = datetime.now(timezone.utc)
+  turno.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(turno)
   return turno

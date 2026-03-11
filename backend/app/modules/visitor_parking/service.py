@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +27,7 @@ async def asignar(
     "tenant_id": tenant_id,
     "ingreso_visita_id": data.ingreso_visita_id,
     "numero": data.numero,
-    "fecha_hora_asignacion": datetime.now(timezone.utc),
+    "fecha_hora_asignacion": datetime.utcnow(),
   })
   return ParqueaderoVisitanteResponse.model_validate(pv)
 

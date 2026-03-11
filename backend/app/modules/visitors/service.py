@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone, date
+from datetime import datetime, date
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,10 +13,11 @@ from app.modules.visitors.schemas import (
 async def listar_autorizaciones(
     tenant_id: uuid.UUID,
     fecha: date | None,
-    db: AsyncSession
+    db: AsyncSession,
+    unidad_id: uuid.UUID | None = None,
   ) -> list[AutorizacionResponse]:
-  items = await repo.get_autorizaciones_by_tenant(db, tenant_id, fecha)
-  return [AutorizacionResponse.model_validate(a) for a in items]
+  items = await repo.get_autorizaciones_by_tenant(db, tenant_id, fecha, unidad_id)
+  return [AutorizacionResponse.from_orm_with_unidad(a) for a in items]
 
 async def obtener_autorizacion(
     autorizacion_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession
@@ -84,7 +85,7 @@ async def registrar_ingreso(
     data: IngresoCreate,
     db: AsyncSession
   ) -> IngresoResponse:
-  hoy = datetime.now(timezone.utc).date()
+  hoy = datetime.utcnow().date()
   
   # Buscar visitante
   visitante = await repo.get_visitante_by_documento(db, data.visitante_documento)
@@ -110,7 +111,7 @@ async def registrar_ingreso(
     "visitante_id": visitante.id,
     "autorizacion_id": autorizacion_id,
     "registrado_por": usuario_id,
-    "fecha_hora_ingreso": datetime.now(timezone.utc),
+    "fecha_hora_ingreso": datetime.utcnow(),
   })  
   # Recargar con relaciones
   from sqlalchemy import select

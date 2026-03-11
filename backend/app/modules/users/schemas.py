@@ -18,12 +18,17 @@ class UsuarioCreate(BaseModel):
 class UsuarioUpdate(BaseModel):
   nombre: str | None = None
   apellido: str | None = None
+  email: EmailStr | None = None
   telefono: str | None = None
   avatar_url: str | None = None
 
 class UsuarioAdminUpdate(BaseModel):
   is_activo: bool | None = None
   email_verificado: bool | None = None
+
+class CambiarPasswordRequest(BaseModel):
+  password_actual: str
+  password_nueva: str
 
 class UsuarioResponse(BaseModel):
   id: uuid.UUID

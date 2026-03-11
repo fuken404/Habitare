@@ -63,6 +63,7 @@ class IncidenteResponse(BaseModel):
   ubicacion: str | None
   estado: EstadoIncidente
   severidad: SeveridadIncidente
+  numero_radicado: str | None
   fecha_resolucion: datetime | None
   actualizaciones: list[ActualizacionResponse]
   created_at: datetime

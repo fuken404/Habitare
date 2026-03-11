@@ -95,6 +95,7 @@ class Incidente(Base):
     server_default="MEDIA",
     nullable=False
   )
+  numero_radicado: Mapped[str | None] = mapped_column(String(30), unique=True, nullable=True)
   fecha_resolucion: Mapped[datetime | None] = mapped_column(TIMESTAMP, nullable=True)
   created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)
   updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)

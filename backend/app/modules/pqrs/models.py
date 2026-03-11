@@ -29,6 +29,12 @@ class PrioridadPQRS(str, enum.Enum):
   ALTA = "alta"
   URGENTE = "urgente"
 
+class TipoPQRS(str, enum.Enum):
+  PETICION = "peticion"
+  QUEJA = "queja"
+  RECLAMO = "reclamo"
+  SUGERENCIA = "sugerencia"
+
 # ======================================
 #            CREACIÓN MODELOS
 # ======================================
@@ -68,10 +74,14 @@ class PQRS(Base):
     ForeignKey("unidades.id", ondelete="CASCADE"),
     nullable=False
   )
-  categoria_id: Mapped[uuid.UUID] = mapped_column(
+  tipo: Mapped[TipoPQRS | None] = mapped_column(
+    SQLEnum(TipoPQRS, name="tipo_pqrs_enum"),
+    nullable=True
+  )
+  categoria_id: Mapped[uuid.UUID | None] = mapped_column(
     UUID(as_uuid=True),
     ForeignKey("categorias_pqrs.id", ondelete="RESTRICT"),
-    nullable=False
+    nullable=True
   )
   radicado_por: Mapped[uuid.UUID] = mapped_column(
     UUID(as_uuid=True),
@@ -90,6 +100,7 @@ class PQRS(Base):
     server_default="MEDIA",
     nullable=False
   )
+  numero_radicado: Mapped[str | None] = mapped_column(String(30), unique=True, nullable=True)
   fecha_primera_respuesta: Mapped[datetime | None] = mapped_column(TIMESTAMP, nullable=True)
   fecha_resolucion: Mapped[datetime | None] = mapped_column(TIMESTAMP, nullable=True)
   created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)
@@ -98,9 +109,10 @@ class PQRS(Base):
   # --- Relaciones ---
   tenant: Mapped["Tenant"] = relationship()
   unidad: Mapped["Unidad"] = relationship()
-  categoria: Mapped["CategoriaPQRS"] = relationship(back_populates="pqrs")
+  categoria: Mapped["CategoriaPQRS | None"] = relationship(back_populates="pqrs")
   usuario: Mapped["Usuario"] = relationship()
   mensajes: Mapped[list["MensajePQRS"]] = relationship(back_populates="pqrs")
+  adjuntos: Mapped[list["AdjuntoPQRS"]] = relationship(back_populates="pqrs")
 
 class MensajePQRS(Base):
   __tablename__ = "mensajes_pqrs"
@@ -127,3 +139,24 @@ class MensajePQRS(Base):
   # ── Relationships ─────────────────────────────────────────────────────────
   pqrs: Mapped["PQRS"] = relationship(back_populates="mensajes")
   autor: Mapped["Usuario"] = relationship()
+
+class AdjuntoPQRS(Base):
+  __tablename__ = "adjuntos_pqrs"
+
+  id: Mapped[uuid.UUID] = mapped_column(
+    UUID(as_uuid=True),
+    primary_key=True,
+    default=uuid.uuid4
+  )
+  pqrs_id: Mapped[uuid.UUID] = mapped_column(
+    UUID(as_uuid=True),
+    ForeignKey("pqrs.id", ondelete="CASCADE"),
+    nullable=False
+  )
+  nombre: Mapped[str] = mapped_column(String(255), nullable=False)
+  mime_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+  contenido_b64: Mapped[str] = mapped_column(Text, nullable=False)
+  created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)
+
+  # ── Relationships ─────────────────────────────────────────────────────────
+  pqrs: Mapped["PQRS"] = relationship(back_populates="adjuntos")

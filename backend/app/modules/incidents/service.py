@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -87,11 +87,16 @@ async def crear_incidente(
   tipo = await repo.get_tipo_by_id(db, data.tipo_id, tenant_id)
   if not tipo:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tipo de incidente no encontrado")
-  
+
+  year = datetime.utcnow().year
+  count = await repo.count_incidentes_by_year(db, tenant_id, year)
+  numero_radicado = f"NOV-{year}-{count + 1:03d}"
+
   incidente = await repo.create_incidente(db, {
     "tenant_id": tenant_id,
     "reportado_por": usuario_id,
     "estado": EstadoIncidente.REPORTADO,
+    "numero_radicado": numero_radicado,
     **data.model_dump(),
   })
   
@@ -128,7 +133,7 @@ async def actualizar_incidente(
       )
     # Si pasa a RESUELTO, registrar fecha de resolución
     if nuevo_estado == EstadoIncidente.RESUELTO:
-      cambios["fecha_resolucion"] = datetime.now(timezone.utc)
+      cambios["fecha_resolucion"] = datetime.utcnow()
   incidente = await repo.update_incidente(db, incidente, cambios)
   # Bitácora automática del cambio de estado
   if "estado" in cambios:

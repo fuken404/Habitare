@@ -66,6 +66,7 @@ class AutorizacionResponse(BaseModel):
   id: uuid.UUID
   tenant_id: uuid.UUID
   unidad_id: uuid.UUID
+  numero_unidad: str | None = None
   visitante: VisitanteResponse
   autorizado_por: uuid.UUID
   fecha_visita: date
@@ -74,7 +75,14 @@ class AutorizacionResponse(BaseModel):
   vehiculos: list[VehiculoResponse]
   created_at: datetime
   updated_at: datetime
-  
+
+  @classmethod
+  def from_orm_with_unidad(cls, obj) -> "AutorizacionResponse":
+    data = cls.model_validate(obj)
+    if obj.unidad is not None:
+      data.numero_unidad = obj.unidad.numero
+    return data
+
   model_config = {"from_attributes": True}
 
 # ======================================

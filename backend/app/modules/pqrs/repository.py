@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func, extract
 from sqlalchemy.orm import selectinload
 
-from app.modules.pqrs.models import CategoriaPQRS, PQRS, MensajePQRS, EstadoPQRS
+from app.modules.pqrs.models import CategoriaPQRS, PQRS, MensajePQRS, AdjuntoPQRS, EstadoPQRS
 
 # ======================================
 #          CATEGORÍA PQRS
@@ -39,7 +39,7 @@ async def update_categoria(
   ) -> CategoriaPQRS:
   for key, value in data.items():
     setattr(categoria, key, value)
-  categoria.updated_at = datetime.now(timezone.utc)
+  categoria.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(categoria)
   return categoria
@@ -73,13 +73,22 @@ async def get_pqrs_by_id(
   result = await db.execute(
     select(PQRS)
     .where(PQRS.id == pqrs_id, PQRS.tenant_id == tenant_id)
-    .options(selectinload(PQRS.mensajes))
+    .options(selectinload(PQRS.mensajes), selectinload(PQRS.adjuntos))
   )
   pqrs = result.scalar_one_or_none()
   # Filtrar mensajes internos si el solicitante es residente
   if pqrs and not include_internos:
     pqrs.mensajes = [m for m in pqrs.mensajes if not m.is_interno]
   return pqrs
+
+async def count_pqrs_by_year(db: AsyncSession, tenant_id: uuid.UUID, year: int) -> int:
+  result = await db.execute(
+    select(func.count()).select_from(PQRS).where(
+      PQRS.tenant_id == tenant_id,
+      extract("year", PQRS.created_at) == year,
+    )
+  )
+  return result.scalar() or 0
 
 async def create_pqrs(db: AsyncSession, data: dict) -> PQRS:
   pqrs = PQRS(**data)
@@ -91,7 +100,7 @@ async def create_pqrs(db: AsyncSession, data: dict) -> PQRS:
 async def update_pqrs(db: AsyncSession, pqrs: PQRS, data: dict) -> PQRS:
   for key, value in data.items():
     setattr(pqrs, key, value)
-  pqrs.updated_at = datetime.now(timezone.utc)
+  pqrs.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(pqrs)
   return pqrs
@@ -99,6 +108,23 @@ async def update_pqrs(db: AsyncSession, pqrs: PQRS, data: dict) -> PQRS:
 # ======================================
 #           MENSAJE PQRS
 # ======================================
+
+async def create_adjunto(
+    db: AsyncSession,
+    pqrs_id: uuid.UUID,
+    nombre: str,
+    mime_type: str | None,
+    contenido_b64: str,
+  ) -> AdjuntoPQRS:
+  adjunto = AdjuntoPQRS(
+    pqrs_id=pqrs_id,
+    nombre=nombre,
+    mime_type=mime_type,
+    contenido_b64=contenido_b64,
+  )
+  db.add(adjunto)
+  await db.flush()
+  return adjunto
 
 async def create_mensaje(
     db: AsyncSession,

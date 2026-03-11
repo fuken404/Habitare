@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -54,7 +54,7 @@ async def update_ingreso(
   ) -> IngresoExterno:
     for key, value in data.items():
       setattr(ingreso, key, value)
-    ingreso.updated_at = datetime.now(timezone.utc)
+    ingreso.updated_at = datetime.utcnow()
     await db.flush()
     await db.refresh(ingreso)
     return ingreso

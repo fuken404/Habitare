@@ -14,7 +14,7 @@ from app.modules.packages import service as packages_service
 
 router = APIRouter(prefix="/paquetes", tags=["Paquetería"])
 
-_ROLES_OPERACION = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
+_ROLES_OPERACION = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN, TipoRol.RESIDENTE)
 
 @router.get("", response_model=list[PaqueteListResponse])
 async def listar_paquetes(

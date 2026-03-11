@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -49,7 +49,7 @@ async def update_comunicado(
   ) -> Comunicado:
   for key, value in data.items():
     setattr(comunicado, key, value)
-  comunicado.updated_at = datetime.now(timezone.utc)
+  comunicado.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(comunicado)
   return comunicado

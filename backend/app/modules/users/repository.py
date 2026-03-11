@@ -35,7 +35,7 @@ async def create_usuario(db: AsyncSession, data: dict) -> Usuario:
 async def update_usuario(db: AsyncSession, usuario: Usuario, data: dict) -> Usuario:
   for key, value in data.items():
     setattr(usuario, key, value)
-  usuario.updated_at = datetime.now(timezone.utc)
+  usuario.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(usuario)
   return usuario
@@ -67,5 +67,5 @@ async def get_membresia(
 
 async def desactivar_membresia(db: AsyncSession, membresia: TenantUsuario) -> None:
   membresia.is_activa = False
-  membresia.updated_at = datetime.now(timezone.utc)
+  membresia.updated_at = datetime.utcnow()
   await db.flush()

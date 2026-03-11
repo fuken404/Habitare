@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +36,7 @@ async def registrar_paquete(
     "tenant_id": tenant_id,
     "unidad_id": data.unidad_id,
     "recibido_por": usuario_id,
-    "fecha_recepcion": datetime.now(timezone.utc),
+    "fecha_recepcion": datetime.utcnow(),
     "estado": EstadoPaquete.PENDIENTE,
   })
   return PaqueteResponse.model_validate(paquete)
@@ -59,6 +59,6 @@ async def entregar_paquete(
   paquete = await repo.update_paquete(db, paquete, {
     "estado": EstadoPaquete.RETIRADO,
     "entregado_por": usuario_id,
-    "fecha_entrega": datetime.now(timezone.utc),
+    "fecha_entrega": datetime.utcnow(),
   })
   return PaqueteResponse.model_validate(paquete)

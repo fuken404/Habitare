@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -32,7 +32,7 @@ async def create_plan(db: AsyncSession, data: dict) -> Plan:
 async def update_plan(db: AsyncSession, plan: Plan, data: dict) -> Plan:
   for key, value in data.items():
     setattr(plan, key, value)
-  plan.updated_at = datetime.now(timezone.utc)
+  plan.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(plan)
   return plan
@@ -75,7 +75,7 @@ async def update_suscripcion(
   ) -> Suscripcion:
   for key, value in data.items():
     setattr(suscripcion, key, value)
-  suscripcion.updated_at = datetime.now(timezone.utc)
+  suscripcion.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(suscripcion)
   return suscripcion
@@ -106,7 +106,7 @@ async def update_pago_suscripcion(
   ) -> PagoSuscripcion:
   for key, value in data.items():
     setattr(pago, key, value)
-  pago.updated_at = datetime.now(timezone.utc)
+  pago.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(pago)
   return pago

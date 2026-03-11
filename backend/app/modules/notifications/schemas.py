@@ -34,6 +34,7 @@ class NotificacionResponse(BaseModel):
 class NotificacionListResponse(BaseModel):
   id: uuid.UUID
   titulo: str
+  mensaje: str
   tipo: TipoNotificacion
   canal: CanalNotificacion
   estado_app: EstadoNotificacion

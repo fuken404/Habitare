@@ -1,6 +1,6 @@
 import uuid
 import random
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,7 @@ from app.modules.parking.schemas import (
     VehiculoResidenteCreate, VehiculoResidenteUpdate, VehiculoResidenteResponse,
     AsignacionCreate, AsignacionResponse,
     SorteoCreate, SorteoResponse,
+    SorteoActivoResponse, InscripcionSorteoCreate,
   )
 
 # ======================================
@@ -142,6 +143,57 @@ async def liberar_parqueadero(
 # ======================================
 #         SORTEO DE ROTACIÓN
 # ======================================
+
+async def obtener_sorteo_activo(
+    tenant_id: uuid.UUID, unidad_id: uuid.UUID, db: AsyncSession
+  ) -> SorteoActivoResponse:
+  sorteo = await repo.get_sorteo_activo(db, tenant_id)
+  if not sorteo:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No hay sorteos programados en este momento")
+  ya_inscrito = any(p.unidad_id == unidad_id for p in sorteo.participaciones)
+  return SorteoActivoResponse(
+    id=sorteo.id,
+    fecha_sorteo=sorteo.fecha_sorteo,
+    n_cupos=sorteo.n_cupos,
+    n_inscritos=len(sorteo.participaciones),
+    ya_inscrito=ya_inscrito,
+    estado=sorteo.estado,
+  )
+
+async def inscribirse_sorteo(
+    sorteo_id: uuid.UUID, tenant_id: uuid.UUID,
+    unidad_id: uuid.UUID, data: InscripcionSorteoCreate, db: AsyncSession
+  ) -> SorteoActivoResponse:
+  sorteo = await repo.get_sorteo_by_id(db, sorteo_id, tenant_id)
+  if not sorteo:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sorteo no encontrado")
+  if sorteo.estado != EstadoSorteo.PROGRAMADO:
+    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El sorteo ya no está disponible para inscripción")
+  ya_inscrita = any(p.unidad_id == unidad_id for p in sorteo.participaciones)
+  if ya_inscrita:
+    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ya estás inscrito en este sorteo")
+  # Registrar vehículo si no existe con esa placa para esta unidad
+  existente = await repo.get_vehiculo_by_placa(db, data.placa, tenant_id)
+  if not existente:
+    await repo.create_vehiculo(db, {
+      "tenant_id": tenant_id,
+      "unidad_id": unidad_id,
+      "tipo": data.tipo_vehiculo,
+      "placa": data.placa,
+      "marca": data.marca,
+      "modelo": data.modelo,
+      "color": data.color,
+    })
+  await repo.add_participacion(db, sorteo_id, unidad_id)
+  sorteo = await repo.get_sorteo_by_id(db, sorteo_id, tenant_id)
+  return SorteoActivoResponse(
+    id=sorteo.id,
+    fecha_sorteo=sorteo.fecha_sorteo,
+    n_cupos=sorteo.n_cupos,
+    n_inscritos=len(sorteo.participaciones),
+    ya_inscrito=True,
+    estado=sorteo.estado,
+  )
 
 async def listar_sorteos(tenant_id: uuid.UUID, db: AsyncSession) -> list[SorteoResponse]:
   items = await repo.get_sorteos(db, tenant_id)

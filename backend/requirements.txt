@@ -19,6 +19,7 @@ psycopg2-binary==2.9.10     # Driver sync necesario para Alembic
 # --- Autenticación ---
 python-jose[cryptography]==3.3.0      # JWT encode/decode
 passlib[bcrypt]==1.7.4                # Hash para contraseñas
+bcrypt==4.0.1                         # Versión compatible con passlib 1.7.4
 python-multipart==0.0.20              # Form data (login)
 
 # --- HTTP / Async ---

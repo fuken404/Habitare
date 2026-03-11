@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from datetime import datetime, timezone
+from datetime import datetime
 
 from app.modules.tenants.models import Tenant, Torre, Unidad
 
@@ -28,7 +28,7 @@ async def update_tenant(db: AsyncSession, tenant: Tenant, data: dict) -> Tenant:
   update_data = {k: v for k, v in data.items() if v is not None}
   for key, value in update_data.items():
     setattr(tenant, key, value)
-  tenant.updated_at = datetime.now(timezone.utc)
+  tenant.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(tenant)
   return tenant
@@ -60,7 +60,7 @@ async def update_torre(db: AsyncSession, torre: Torre, data: dict) -> Torre:
   update_data = {k: v for k, v in data.items() if v is not None}
   for key, value in update_data.items():
     setattr(torre, key, value)
-  torre.updated_at = datetime.now(timezone.utc)
+  torre.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(torre)
   return torre
@@ -102,7 +102,7 @@ async def update_unidad(db: AsyncSession, unidad: Unidad, data: dict) -> Unidad:
   update_data = {k: v for k, v in data.items() if v is not None}
   for key, value in update_data.items():
     setattr(unidad, key, value)
-  unidad.updated_at = datetime.now(timezone.utc)
+  unidad.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(unidad)
   return unidad

@@ -7,6 +7,7 @@ from app.core.database.session import engine
 from app.core.database.base import Base
 
 from app.modules.auth.router import router as auth_router
+from app.modules.auth.reset_models import PasswordResetCode  # noqa: F401 – registers model with Base.metadata
 from app.modules.tenants.router import router as tenants_router
 from app.modules.users.router import router as users_router
 from app.modules.visitors.router import router as visitors_router

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -91,7 +91,7 @@ async def soft_delete_archivo(
     db: AsyncSession, archivo: Archivo
   ) -> Archivo:
   archivo.eliminado = True
-  archivo.fecha_eliminacion = datetime.now(timezone.utc)
+  archivo.fecha_eliminacion = datetime.utcnow()
   await db.flush()
   await db.refresh(archivo)
   return archivo

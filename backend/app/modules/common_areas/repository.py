@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone, date, time
+from datetime import datetime, date, time
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
@@ -49,7 +49,7 @@ async def update_zona(
   ) -> ZonaComun:
   for key, value in data.items():
     setattr(zona, key, value)
-  zona.updated_at = datetime.now(timezone.utc)
+  zona.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(zona)
   return zona
@@ -158,7 +158,7 @@ async def update_reserva(
   ) -> ReservaZonaComun:
   for key, value in data.items():
     setattr(reserva, key, value)
-  reserva.updated_at = datetime.now(timezone.utc)
+  reserva.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(reserva)
   return reserva

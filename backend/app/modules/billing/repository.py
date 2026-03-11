@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone, date
+from datetime import datetime, date
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -53,7 +53,7 @@ async def update_factura(
   ) -> Factura:
   for key, value in data.items():
     setattr(factura, key, value)
-  factura.updated_at = datetime.now(timezone.utc)
+  factura.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(factura)
   return factura
@@ -95,7 +95,7 @@ async def update_pago(
   ) -> Pago:
   for key, value in data.items():
     setattr(pago, key, value)
-  pago.updated_at = datetime.now(timezone.utc)
+  pago.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(pago)
   return pago

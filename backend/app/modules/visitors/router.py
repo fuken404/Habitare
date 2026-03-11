@@ -15,7 +15,7 @@ from app.modules.visitors import service as visitors_service
 
 router = APIRouter(prefix="/visitors", tags=["Visitantes"])
 
-_ROLES_OPERACION = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
+_ROLES_OPERACION = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN, TipoRol.RESIDENTE)
 _ROLES_ADMIN = (TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
 
 # ======================================
@@ -25,11 +25,16 @@ _ROLES_ADMIN = (TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
 @router.get("/autorizaciones", response_model=list[AutorizacionResponse])
 async def listar_autorizaciones(
     fecha: date | None = Query(default=None, description="Filtrar por fecha (YYYY-MM-DD)"),
+    unidad_id: uuid.UUID | None = Query(default=None, description="Filtrar por unidad"),
     tenant_id: uuid.UUID = Depends(get_tenant_id),
-    _: MeResponse = Depends(require_roles(*_ROLES_OPERACION)),
+    current_user: MeResponse = Depends(require_roles(*_ROLES_OPERACION)),
     db: AsyncSession = Depends(get_db),
   ):
-  return await visitors_service.listar_autorizaciones(tenant_id, fecha, db)
+  # Si el usuario es RESIDENTE, forzar filtro a su propia unidad
+  effective_unidad_id = unidad_id
+  if current_user.rol == TipoRol.RESIDENTE and current_user.unidad_id is not None:
+    effective_unidad_id = current_user.unidad_id
+  return await visitors_service.listar_autorizaciones(tenant_id, fecha, db, effective_unidad_id)
 
 @router.get("/autorizaciones/{autorizacion_id}", response_model=AutorizacionResponse)
 async def obtener_autorizacion(

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -40,8 +40,8 @@ async def create_parqueadero_visitante(
 async def liberar_parqueadero_visitante(
     db: AsyncSession, pv: ParqueaderoVisitante
   ) -> ParqueaderoVisitante:
-  pv.fecha_hora_liberacion = datetime.now(timezone.utc)
-  pv.updated_at = datetime.now(timezone.utc)
+  pv.fecha_hora_liberacion = datetime.utcnow()
+  pv.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(pv)
   return pv

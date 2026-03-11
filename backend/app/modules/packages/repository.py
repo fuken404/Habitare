@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -46,7 +46,7 @@ async def create_paquete(db: AsyncSession, data: dict) -> Paquete:
 async def update_paquete(db: AsyncSession, paquete: Paquete, data: dict) -> Paquete:
   for key, value in data.items():
     setattr(paquete, key, value)
-  paquete.updated_at = datetime.now(timezone.utc)
+  paquete.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(paquete)
   return paquete

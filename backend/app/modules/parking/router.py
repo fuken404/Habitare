@@ -11,6 +11,7 @@ from app.modules.parking.schemas import (
     VehiculoResidenteCreate, VehiculoResidenteUpdate, VehiculoResidenteResponse,
     AsignacionCreate, AsignacionResponse,
     SorteoCreate, ParticipacionCreate, SorteoResponse,
+    SorteoActivoResponse, InscripcionSorteoCreate,
   )
 from app.modules.parking import service as parking_service
 
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/parking", tags=["Parqueaderos"])
 
 _ROLES_ADMIN = (TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
 _ROLES_OPERACION = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
+_ROLES_TODOS = (TipoRol.RESIDENTE, TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
 
 # ======================================
 #         PARQUEADEROS
@@ -134,6 +136,24 @@ async def liberar_parqueadero(
 # ======================================
 #         SORTEOS DE ROTACIÓN
 # ======================================
+
+@router.get("/sorteos/activo", response_model=SorteoActivoResponse)
+async def obtener_sorteo_activo(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    current_user: MeResponse = Depends(require_roles(*_ROLES_TODOS)),
+    db: AsyncSession = Depends(get_db),
+  ):
+  return await parking_service.obtener_sorteo_activo(tenant_id, current_user.unidad_id, db)
+
+@router.post("/sorteos/{sorteo_id}/inscribirse", response_model=SorteoActivoResponse)
+async def inscribirse_sorteo(
+    sorteo_id: uuid.UUID,
+    body: InscripcionSorteoCreate,
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    current_user: MeResponse = Depends(require_roles(*_ROLES_TODOS)),
+    db: AsyncSession = Depends(get_db),
+  ):
+  return await parking_service.inscribirse_sorteo(sorteo_id, tenant_id, current_user.unidad_id, body, db)
 
 @router.get("/sorteos", response_model=list[SorteoResponse])
 async def listar_sorteos(

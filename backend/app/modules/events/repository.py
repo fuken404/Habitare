@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -54,7 +54,7 @@ async def marcar_procesado(
     db: AsyncSession, evento: EventoOutbox
   ) -> None:
   evento.estado = EstadoEvento.PROCESADO
-  evento.fecha_procesado = datetime.now(timezone.utc)
+  evento.fecha_procesado = datetime.utcnow()
   await db.flush()
 
 async def marcar_fallido(

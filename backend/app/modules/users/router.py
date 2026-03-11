@@ -9,6 +9,7 @@ from app.modules.auth.schemas import MeResponse
 from app.modules.users.schemas import (
   UsuarioCreate, UsuarioUpdate,
   UsuarioResponse, AsignarUsuarioTenant, MembresiaResponse,
+  CambiarPasswordRequest,
 )
 from app.modules.users import service as users_service
 
@@ -59,6 +60,14 @@ async def actualizar_usuario(
     from fastapi import HTTPException
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin permisos")
   return await users_service.actualizar_usuario(usuario_id, body, db)
+
+@router.post("/me/cambiar-password", status_code=status.HTTP_204_NO_CONTENT)
+async def cambiar_password(
+  body: CambiarPasswordRequest,
+  current_user: MeResponse = Depends(get_current_user),
+  db: AsyncSession = Depends(get_db),
+):
+  await users_service.cambiar_password(current_user.id, body, db)
 
 @router.post("/asignar", response_model=MembresiaResponse, status_code=status.HTTP_201_CREATED)
 async def asignar_usuario(

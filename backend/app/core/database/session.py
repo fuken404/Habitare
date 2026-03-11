@@ -38,7 +38,7 @@ AsyncSessionLocal = async_sessionmaker(
 # El yield garantiza que la sesión se cierra aunque el endpoint falle.
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-  async with AsyncSessionLocal as session:
+  async with AsyncSessionLocal() as session:
     try:
       yield session
       await session.commit()

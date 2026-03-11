@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone, date
+from datetime import datetime, date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -51,7 +51,8 @@ async def get_autorizacion_by_id(
   return result.scalar_one_or_none()
 
 async def get_autorizaciones_by_tenant(
-    db: AsyncSession, tenant_id: uuid.UUID, fecha: date | None = None
+    db: AsyncSession, tenant_id: uuid.UUID, fecha: date | None = None,
+    unidad_id: uuid.UUID | None = None
   ) -> list[AutorizacionVisita]:
   query = (
     select(AutorizacionVisita)
@@ -59,11 +60,14 @@ async def get_autorizaciones_by_tenant(
     .options(
       selectinload(AutorizacionVisita.visitante),
       selectinload(AutorizacionVisita.vehiculos),
+      selectinload(AutorizacionVisita.unidad),
     )
     .order_by(AutorizacionVisita.fecha_visita.desc())
   )
   if fecha:
     query = query.where(AutorizacionVisita.fecha_visita == fecha)
+  if unidad_id:
+    query = query.where(AutorizacionVisita.unidad_id == unidad_id)
   result = await db.execute(query)
   return list(result.scalars().all())
 
@@ -98,7 +102,7 @@ async def update_autorizacion(
   ) -> AutorizacionVisita:
   for key, value in data.items():
     setattr(autorizacion, key, value)
-  autorizacion.updated_at = datetime.now(timezone.utc)
+  autorizacion.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(autorizacion)
   return autorizacion

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -45,7 +45,7 @@ async def update_parqueadero(
   ) -> ParqueaderoResidente:
   for key, value in data.items():
     setattr(parqueadero, key, value)
-  parqueadero.updated_at = datetime.now(timezone.utc)
+  parqueadero.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(parqueadero)
   return parqueadero
@@ -102,7 +102,7 @@ async def update_vehiculo(
 ) -> VehiculoResidente:
   for key, value in data.items():
     setattr(vehiculo, key, value)
-  vehiculo.updated_at = datetime.now(timezone.utc)
+  vehiculo.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(vehiculo)
   return vehiculo
@@ -148,13 +148,25 @@ async def desactivar_asignacion(
     db: AsyncSession, asignacion: AsignacionParqueaderoResidente
   ) -> None:
   asignacion.is_activa = False
-  asignacion.fecha_fin = datetime.now(timezone.utc)
-  asignacion.updated_at = datetime.now(timezone.utc)
+  asignacion.fecha_fin = datetime.utcnow()
+  asignacion.updated_at = datetime.utcnow()
   await db.flush()
 
 # ======================================
 #           SORTEO DE ROTACIÓN
 # ======================================
+
+async def get_sorteo_activo(
+    db: AsyncSession, tenant_id: uuid.UUID
+  ) -> SorteoRotacion | None:
+  result = await db.execute(
+    select(SorteoRotacion)
+    .where(SorteoRotacion.tenant_id == tenant_id, SorteoRotacion.estado == EstadoSorteo.PROGRAMADO)
+    .options(selectinload(SorteoRotacion.participaciones))
+    .order_by(SorteoRotacion.fecha_sorteo.asc())
+    .limit(1)
+  )
+  return result.scalar_one_or_none()
 
 async def get_sorteos(db: AsyncSession, tenant_id: uuid.UUID) -> list[SorteoRotacion]:
   result = await db.execute(
@@ -195,7 +207,7 @@ async def update_sorteo(
   ) -> SorteoRotacion:
   for key, value in data.items():
     setattr(sorteo, key, value)
-  sorteo.updated_at = datetime.now(timezone.utc)
+  sorteo.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(sorteo)
   return sorteo

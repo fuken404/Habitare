@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func, extract
 from sqlalchemy.orm import selectinload
 
 from app.modules.incidents.models import (
@@ -43,7 +43,7 @@ async def update_tipo(
   ) -> TipoIncidente:
   for key, value in data.items():
     setattr(tipo, key, value)
-  tipo.updated_at = datetime.now(timezone.utc)
+  tipo.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(tipo)
   return tipo
@@ -84,6 +84,15 @@ async def get_incidente_by_id(
   )
   return result.scalar_one_or_none()
 
+async def count_incidentes_by_year(db: AsyncSession, tenant_id: uuid.UUID, year: int) -> int:
+  result = await db.execute(
+    select(func.count()).select_from(Incidente).where(
+      Incidente.tenant_id == tenant_id,
+      extract("year", Incidente.created_at) == year,
+    )
+  )
+  return result.scalar() or 0
+
 async def create_incidente(db: AsyncSession, data: dict) -> Incidente:
   incidente = Incidente(**data)
   db.add(incidente)
@@ -96,7 +105,7 @@ async def update_incidente(
   ) -> Incidente:
   for key, value in data.items():
     setattr(incidente, key, value)
-  incidente.updated_at = datetime.now(timezone.utc)
+  incidente.updated_at = datetime.utcnow()
   await db.flush()
   await db.refresh(incidente)
   return incidente

@@ -48,7 +48,15 @@ class Settings(BaseSettings):
   
   # --- Rate limiting ---
   RATE_LIMIT_PER_MINUTE: int = 60
-  
+
+  # --- Email (SMTP) ---
+  SMTP_HOST: str = "smtp.gmail.com"
+  SMTP_PORT: int = 587
+  SMTP_USER: str = ""
+  SMTP_PASSWORD: str = ""
+  SMTP_FROM: str = "Habitare <noreply@habitare.com>"
+  SMTP_ENABLED: bool = False
+
   # --- Validaciones ---
   @field_validator("JWT_SECRET_KEY")
   @classmethod

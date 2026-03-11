@@ -117,7 +117,7 @@ async def listar_unidades_por_tenant(
 async def obtener_unidad(
   unidad_id: uuid.UUID,
   tenant_id: uuid.UUID = Depends(get_tenant_id),
-  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  _: MeResponse = Depends(get_current_user),
   db: AsyncSession = Depends(get_db)
   ):
   return await tenants_service.obtener_unidad(unidad_id, tenant_id, db)

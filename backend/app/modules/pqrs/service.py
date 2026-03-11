@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -80,17 +80,15 @@ async def crear_pqrs(
     data: PQRSCreate,
     db: AsyncSession,
   ) -> PQRSResponse:
-  categoria = await repo.get_categoria_by_id(db, data.categoria_id)
-  if not categoria or not categoria.is_activa:
-    raise HTTPException(
-      status_code=status.HTTP_404_NOT_FOUND,
-      detail="Categoría no encontrada o inactiva"
-    )
+  year = datetime.utcnow().year
+  count = await repo.count_pqrs_by_year(db, tenant_id, year)
+  numero_radicado = f"PQRS-{year}-{count + 1:03d}"
   pqrs = await repo.create_pqrs(db, {
     "tenant_id": tenant_id,
     "radicado_por": usuario_id,
     "estado": EstadoPQRS.ABIERTA,
-    **data.model_dump(),
+    "numero_radicado": numero_radicado,
+    **data.model_dump(exclude={"adjuntos"}),
   })
   # Mensaje inicial automático con la descripción del radicado
   await repo.create_mensaje(
@@ -98,6 +96,11 @@ async def crear_pqrs(
     contenido=data.descripcion,
     is_interno=False,
   )
+  # Adjuntos
+  for adj in data.adjuntos:
+    await repo.create_adjunto(
+      db, pqrs.id, adj.nombre, adj.mime_type, adj.contenido_b64
+    )
   pqrs = await repo.get_pqrs_by_id(db, pqrs.id, tenant_id)
   return PQRSResponse.model_validate(pqrs)
 
@@ -121,7 +124,7 @@ async def actualizar_pqrs(
         status_code=status.HTTP_409_CONFLICT,
         detail=f"Transición inválida: '{pqrs.estado}' → '{nuevo_estado}'"
       )
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     # Primera respuesta: cuando pasa de ABIERTA a EN_PROCESO
     if (
       pqrs.estado == EstadoPQRS.ABIERTA

@@ -17,7 +17,7 @@ from app.modules.incidents import service as incidents_service
 router = APIRouter(prefix="/incidents", tags=["Incidentes"])
 
 _ROLES_ADMIN   = (TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
-_ROLES_REPORTE = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
+_ROLES_REPORTE = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN, TipoRol.RESIDENTE)
 
 # ======================================
 #         TIPOS DE INCIDENTE
@@ -68,10 +68,14 @@ async def listar_incidentes(
     estado: EstadoIncidente | None = Query(default=None),
     unidad_id: uuid.UUID | None = Query(default=None),
     tenant_id: uuid.UUID = Depends(get_tenant_id),
-    _: MeResponse = Depends(require_roles(*_ROLES_REPORTE)),
+    current_user: MeResponse = Depends(require_roles(*_ROLES_REPORTE)),
     db: AsyncSession = Depends(get_db),
   ):
-  return await incidents_service.listar_incidentes(tenant_id, estado, unidad_id, db)
+  # Si el usuario es RESIDENTE, forzar filtro a su propia unidad
+  effective_unidad_id = unidad_id
+  if current_user.rol == TipoRol.RESIDENTE and current_user.unidad_id is not None:
+    effective_unidad_id = current_user.unidad_id
+  return await incidents_service.listar_incidentes(tenant_id, estado, effective_unidad_id, db)
 
 @router.get("/{incidente_id}", response_model=IncidenteResponse)
 async def obtener_incidente(

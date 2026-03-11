@@ -85,6 +85,21 @@ class AsignacionResponse(BaseModel):
 #           SORTEO DE ROTACIÓN
 # ======================================
 
+class SorteoActivoResponse(BaseModel):
+  id: uuid.UUID
+  fecha_sorteo: date
+  n_cupos: int
+  n_inscritos: int
+  ya_inscrito: bool
+  estado: EstadoSorteo
+
+class InscripcionSorteoCreate(BaseModel):
+  tipo_vehiculo: TipoVehiculoResidente
+  placa: str
+  marca: str | None = None
+  modelo: str | None = None
+  color: str | None = None
+
 class SorteoCreate(BaseModel):
   fecha_sorteo: date
   n_cupos: int
