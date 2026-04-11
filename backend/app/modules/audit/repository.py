@@ -91,7 +91,7 @@ async def soft_delete_archivo(
     db: AsyncSession, archivo: Archivo
   ) -> Archivo:
   archivo.eliminado = True
-  archivo.fecha_eliminacion = datetime.utcnow()
+  archivo.fecha_eliminacion = datetime.now()
   await db.flush()
   await db.refresh(archivo)
   return archivo

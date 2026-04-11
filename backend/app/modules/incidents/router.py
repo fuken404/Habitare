@@ -75,7 +75,9 @@ async def listar_incidentes(
   effective_unidad_id = unidad_id
   if current_user.rol == TipoRol.RESIDENTE and current_user.unidad_id is not None:
     effective_unidad_id = current_user.unidad_id
-  return await incidents_service.listar_incidentes(tenant_id, estado, effective_unidad_id, db)
+  # Para SEGURIDAD, excluir incidentes cerrados/resueltos
+  excluir_cerrados = current_user.rol == TipoRol.SEGURIDAD
+  return await incidents_service.listar_incidentes(tenant_id, estado, effective_unidad_id, db, excluir_cerrados)
 
 @router.get("/{incidente_id}", response_model=IncidenteResponse)
 async def obtener_incidente(

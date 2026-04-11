@@ -77,7 +77,15 @@ class ComunicadoListResponse(BaseModel):
   tipo: TipoComunicado
   estado: EstadoComunicado
   autor_id: uuid.UUID
+  nombre_autor: str | None = None
   fecha_publicacion: datetime | None
   created_at: datetime
-  
+
   model_config = {"from_attributes": True}
+
+  @classmethod
+  def from_orm_comunicado(cls, c: object) -> "ComunicadoListResponse":
+    obj = cls.model_validate(c)
+    if hasattr(c, "autor") and c.autor:  # type: ignore[union-attr]
+      obj.nombre_autor = f"{c.autor.nombre} {c.autor.apellido or ''}".strip()  # type: ignore[union-attr]
+    return obj

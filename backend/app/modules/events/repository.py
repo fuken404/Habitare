@@ -54,7 +54,7 @@ async def marcar_procesado(
     db: AsyncSession, evento: EventoOutbox
   ) -> None:
   evento.estado = EstadoEvento.PROCESADO
-  evento.fecha_procesado = datetime.utcnow()
+  evento.fecha_procesado = datetime.now()
   await db.flush()
 
 async def marcar_fallido(

@@ -9,7 +9,7 @@ from app.modules.users.models import TipoRol
 from app.modules.auth.schemas import MeResponse
 from app.modules.external_personnel.models import TipoPersonalExterno
 from app.modules.external_personnel.schemas import (
-    IngresoExternoCreate, IngresoExternoUpdate, SalidaExternoRequest,
+    IngresoExternoCreate, IngresoExternoUpdate,
     IngresoExternoResponse, IngresoExternoListResponse,
   )
 from app.modules.external_personnel import service as ext_service
@@ -64,13 +64,9 @@ async def actualizar_ingreso(
 @router.post("/{ingreso_id}/checkout", response_model=IngresoExternoResponse)
 async def registrar_salida(
     ingreso_id: uuid.UUID,
-    body: SalidaExternoRequest,
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     _: MeResponse = Depends(require_roles(*_ROLES_STAFF)),
     db: AsyncSession = Depends(get_db),
   ):
-  """
-  Registra la salida del personal externo.
-  Falla si la salida ya fue registrada previamente.
-  """
-  return await ext_service.registrar_salida(ingreso_id, tenant_id, body, db)
+  """Registra la salida con timestamp actual. Falla si ya fue registrada."""
+  return await ext_service.registrar_salida(ingreso_id, tenant_id, db)

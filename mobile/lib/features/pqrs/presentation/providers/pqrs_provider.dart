@@ -3,7 +3,7 @@ import 'package:habitare/core/network/api_client.dart';
 import 'package:habitare/features/auth/presentation/providers/auth_provider.dart';
 import 'package:habitare/features/pqrs/domain/pqrs_model.dart';
 
-final pqrsProvider = FutureProvider<List<PqrsModel>>((ref) async {
+final pqrsProvider = FutureProvider.autoDispose<List<PqrsModel>>((ref) async {
   final user = ref.watch(authProvider).user;
   final response = await ApiClient.instance.get('/pqrs');
   final list = response.data as List<dynamic>;
@@ -18,7 +18,7 @@ final pqrsProvider = FutureProvider<List<PqrsModel>>((ref) async {
 });
 
 final pqrsCategoriasProvider =
-    FutureProvider<List<PqrsCategoriaModel>>((ref) async {
+    FutureProvider.autoDispose<List<PqrsCategoriaModel>>((ref) async {
   final response = await ApiClient.instance.get('/pqrs/categorias');
   final list = response.data as List<dynamic>;
   return list
@@ -27,7 +27,7 @@ final pqrsCategoriasProvider =
 });
 
 final pqrsDetailProvider =
-    FutureProvider.family<PqrsDetailModel, String>((ref, id) async {
+    FutureProvider.autoDispose.family<PqrsDetailModel, String>((ref, id) async {
   final response = await ApiClient.instance.get('/pqrs/$id');
   return PqrsDetailModel.fromJson(response.data as Map<String, dynamic>);
 });

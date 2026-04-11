@@ -9,10 +9,54 @@ from app.modules.parking.models import (
     AsignacionParqueaderoResidente, SorteoRotacion,
     ParticipacionRotacion, EstadoSorteo
   )
+from app.modules.tenants.models import Unidad, Torre, Tenant
+
+# ======================================
+#         CONFIGURACIÓN TENANT
+# ======================================
+
+async def get_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> Tenant | None:
+  result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+  return result.scalar_one_or_none()
+
+async def update_tenant_config(db: AsyncSession, tenant: Tenant, data: dict) -> Tenant:
+  for key, value in data.items():
+    setattr(tenant, key, value)
+  await db.flush()
+  await db.refresh(tenant)
+  return tenant
 
 # ======================================
 #         PARQUEADERO RESIDENTE
 # ======================================
+
+async def get_estado_parqueaderos(
+    db: AsyncSession, tenant_id: uuid.UUID
+  ) -> tuple[list[ParqueaderoResidente], dict]:
+  parq_result = await db.execute(
+    select(ParqueaderoResidente)
+    .where(ParqueaderoResidente.tenant_id == tenant_id)
+    .order_by(ParqueaderoResidente.numero)
+  )
+  parqueaderos = list(parq_result.scalars().all())
+
+  asig_result = await db.execute(
+    select(AsignacionParqueaderoResidente, Unidad, Torre)
+    .outerjoin(Unidad, Unidad.id == AsignacionParqueaderoResidente.unidad_id)
+    .outerjoin(Torre, Torre.id == Unidad.torre_id)
+    .where(
+      AsignacionParqueaderoResidente.tenant_id == tenant_id,
+      AsignacionParqueaderoResidente.is_activa == True,
+    )
+  )
+  asig_map: dict = {}
+  for asig, unidad, torre in asig_result.all():
+    asig_map[asig.parqueadero_id] = {
+      "unidad_id": unidad.id if unidad else None,
+      "numero_unidad": unidad.numero if unidad else None,
+      "nombre_torre": torre.nombre if torre else None,
+    }
+  return parqueaderos, asig_map
 
 async def get_parqueaderos(db: AsyncSession, tenant_id: uuid.UUID) -> list[ParqueaderoResidente]:
   result = await db.execute(
@@ -45,7 +89,7 @@ async def update_parqueadero(
   ) -> ParqueaderoResidente:
   for key, value in data.items():
     setattr(parqueadero, key, value)
-  parqueadero.updated_at = datetime.utcnow()
+  parqueadero.updated_at = datetime.now()
   await db.flush()
   await db.refresh(parqueadero)
   return parqueadero
@@ -102,7 +146,7 @@ async def update_vehiculo(
 ) -> VehiculoResidente:
   for key, value in data.items():
     setattr(vehiculo, key, value)
-  vehiculo.updated_at = datetime.utcnow()
+  vehiculo.updated_at = datetime.now()
   await db.flush()
   await db.refresh(vehiculo)
   return vehiculo
@@ -148,8 +192,8 @@ async def desactivar_asignacion(
     db: AsyncSession, asignacion: AsignacionParqueaderoResidente
   ) -> None:
   asignacion.is_activa = False
-  asignacion.fecha_fin = datetime.utcnow()
-  asignacion.updated_at = datetime.utcnow()
+  asignacion.fecha_fin = datetime.now()
+  asignacion.updated_at = datetime.now()
   await db.flush()
 
 # ======================================
@@ -162,7 +206,7 @@ async def get_sorteo_activo(
   result = await db.execute(
     select(SorteoRotacion)
     .where(SorteoRotacion.tenant_id == tenant_id, SorteoRotacion.estado == EstadoSorteo.PROGRAMADO)
-    .options(selectinload(SorteoRotacion.participaciones))
+    .options(selectinload(SorteoRotacion.participaciones).selectinload(ParticipacionRotacion.unidad))
     .order_by(SorteoRotacion.fecha_sorteo.asc())
     .limit(1)
   )
@@ -172,7 +216,7 @@ async def get_sorteos(db: AsyncSession, tenant_id: uuid.UUID) -> list[SorteoRota
   result = await db.execute(
     select(SorteoRotacion)
     .where(SorteoRotacion.tenant_id == tenant_id)
-    .options(selectinload(SorteoRotacion.participaciones))
+    .options(selectinload(SorteoRotacion.participaciones).selectinload(ParticipacionRotacion.unidad))
     .order_by(SorteoRotacion.fecha_sorteo.desc())
   )
   return list(result.scalars().all())
@@ -183,7 +227,7 @@ async def get_sorteo_by_id(
   result = await db.execute(
     select(SorteoRotacion)
     .where(SorteoRotacion.id == sorteo_id, SorteoRotacion.tenant_id == tenant_id)
-    .options(selectinload(SorteoRotacion.participaciones))
+    .options(selectinload(SorteoRotacion.participaciones).selectinload(ParticipacionRotacion.unidad))
   )
   return result.scalar_one_or_none()
 
@@ -207,7 +251,7 @@ async def update_sorteo(
   ) -> SorteoRotacion:
   for key, value in data.items():
     setattr(sorteo, key, value)
-  sorteo.updated_at = datetime.utcnow()
+  sorteo.updated_at = datetime.now()
   await db.flush()
   await db.refresh(sorteo)
   return sorteo

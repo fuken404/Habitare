@@ -3,7 +3,7 @@ import 'package:habitare/core/network/api_client.dart';
 import 'package:habitare/features/incidents/domain/incident_model.dart';
 
 final tiposIncidenteProvider =
-    FutureProvider<List<TipoIncidenteModel>>((ref) async {
+    FutureProvider.autoDispose<List<TipoIncidenteModel>>((ref) async {
   final response = await ApiClient.instance.get('/incidents/tipos');
   final list = response.data as List<dynamic>;
   return list

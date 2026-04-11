@@ -53,12 +53,17 @@ dependencies:
   
   # Secure Storage
   flutter_secure_storage: ^9.2.2
+  local_auth: ^2.3.0
 
   # Conectividad
   connectivity_plus: ^6.1.0
   
   # QR Code
   qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.0
+
+  # Compartir
+  share_plus: ^10.0.0
 
   # Image picker (foto de perfil)
   image_picker: ^1.1.2

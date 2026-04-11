@@ -28,7 +28,7 @@ async def update_tenant(db: AsyncSession, tenant: Tenant, data: dict) -> Tenant:
   update_data = {k: v for k, v in data.items() if v is not None}
   for key, value in update_data.items():
     setattr(tenant, key, value)
-  tenant.updated_at = datetime.utcnow()
+  tenant.updated_at = datetime.now()
   await db.flush()
   await db.refresh(tenant)
   return tenant
@@ -60,7 +60,7 @@ async def update_torre(db: AsyncSession, torre: Torre, data: dict) -> Torre:
   update_data = {k: v for k, v in data.items() if v is not None}
   for key, value in update_data.items():
     setattr(torre, key, value)
-  torre.updated_at = datetime.utcnow()
+  torre.updated_at = datetime.now()
   await db.flush()
   await db.refresh(torre)
   return torre
@@ -72,6 +72,57 @@ async def delete_torre(db: AsyncSession, torre: Torre) -> None:
 # ======================================
 #                 UNIDAD
 # ======================================
+
+async def get_unidades_con_residentes(db: AsyncSession, tenant_id: uuid.UUID) -> list[dict]:
+  from app.modules.users.models import Usuario, TenantUsuario, Rol, TipoRol
+  # Cargar unidades con torre
+  unidades_result = await db.execute(
+    select(Unidad, Torre)
+    .outerjoin(Torre, Torre.id == Unidad.torre_id)
+    .where(Unidad.tenant_id == tenant_id)
+    .order_by(Torre.nombre.nullsfirst(), Unidad.numero)
+  )
+  unidades_rows = unidades_result.all()
+
+  # Cargar todos los residentes activos del tenant con su unidad_id
+  residentes_result = await db.execute(
+    select(Usuario, TenantUsuario)
+    .join(TenantUsuario, TenantUsuario.usuario_id == Usuario.id)
+    .join(Rol, Rol.id == TenantUsuario.rol_id)
+    .where(
+      TenantUsuario.tenant_id == tenant_id,
+      TenantUsuario.is_activa == True,
+      Rol.nombre == TipoRol.RESIDENTE,
+    )
+  )
+  residentes_rows = residentes_result.all()
+
+  # Agrupar residentes por unidad_id
+  residentes_por_unidad: dict = {}
+  for usuario, membresia in residentes_rows:
+    uid = str(membresia.unidad_id)
+    residentes_por_unidad.setdefault(uid, []).append({
+      "id": usuario.id,
+      "nombre": usuario.nombre,
+      "apellido": usuario.apellido,
+      "avatar_url": usuario.avatar_url,
+    })
+
+  out = []
+  for unidad, torre in unidades_rows:
+    out.append({
+      "id": unidad.id,
+      "numero": unidad.numero,
+      "tipo": unidad.tipo,
+      "area_m2": unidad.area_m2,
+      "piso": unidad.piso,
+      "habitada": unidad.habitada,
+      "torre_id": unidad.torre_id,
+      "nombre_torre": torre.nombre if torre else None,
+      "residentes": residentes_por_unidad.get(str(unidad.id), []),
+      "created_at": unidad.created_at,
+    })
+  return out
 
 async def get_unidades_by_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> list[Unidad]:
   result = await db.execute(
@@ -99,10 +150,9 @@ async def create_unidad(db: AsyncSession, tenant_id: uuid.UUID, data: dict) -> U
   return unidad
 
 async def update_unidad(db: AsyncSession, unidad: Unidad, data: dict) -> Unidad:
-  update_data = {k: v for k, v in data.items() if v is not None}
-  for key, value in update_data.items():
+  for key, value in data.items():
     setattr(unidad, key, value)
-  unidad.updated_at = datetime.utcnow()
+  unidad.updated_at = datetime.now()
   await db.flush()
   await db.refresh(unidad)
   return unidad

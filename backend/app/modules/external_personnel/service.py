@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.external_personnel import repository as repo
 from app.modules.external_personnel.models import TipoPersonalExterno
 from app.modules.external_personnel.schemas import (
-    IngresoExternoCreate, IngresoExternoUpdate, SalidaExternoRequest,
+    IngresoExternoCreate, IngresoExternoUpdate,
     IngresoExternoResponse, IngresoExternoListResponse,
   )
 
@@ -38,6 +38,7 @@ async def registrar_ingreso(
   ingreso = await repo.create_ingreso(db, {
     "tenant_id": tenant_id,
     "registrado_por": registrado_por,
+    "fecha_hora_ingreso": datetime.now(),
     **data.model_dump(),
   })
   return IngresoExternoResponse.model_validate(ingreso)
@@ -46,24 +47,18 @@ async def registrar_ingreso(
 async def registrar_salida(
     ingreso_id: uuid.UUID,
     tenant_id: uuid.UUID,
-    data: SalidaExternoRequest,
     db: AsyncSession,
   ) -> IngresoExternoResponse:
   ingreso = await repo.get_ingreso_by_id(db, ingreso_id, tenant_id)
   if not ingreso:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingreso no encontrado")
   if ingreso.fecha_hora_salida is not None:
-      raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail="La salida ya fue registrada para este ingreso"
-      )
-  if data.fecha_hora_salida <= ingreso.fecha_hora_ingreso:
     raise HTTPException(
-      status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-      detail="fecha_hora_salida debe ser posterior a fecha_hora_ingreso"
+      status_code=status.HTTP_409_CONFLICT,
+      detail="La salida ya fue registrada para este ingreso"
     )
   ingreso = await repo.update_ingreso(db, ingreso, {
-    "fecha_hora_salida": data.fecha_hora_salida,
+    "fecha_hora_salida": datetime.now(),
   })
   return IngresoExternoResponse.model_validate(ingreso)
 

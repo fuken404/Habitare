@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.modules.communications.models import (
     Comunicado, SegmentacionComunicado, EstadoComunicado
   )
+from app.modules.users.models import Usuario
 
 # ======================================
 #          COMUNICADO
@@ -20,6 +21,7 @@ async def get_comunicados(
   query = (
     select(Comunicado)
     .where(Comunicado.tenant_id == tenant_id)
+    .options(selectinload(Comunicado.autor))
     .order_by(Comunicado.created_at.desc())
   )
   if estado:
@@ -49,7 +51,7 @@ async def update_comunicado(
   ) -> Comunicado:
   for key, value in data.items():
     setattr(comunicado, key, value)
-  comunicado.updated_at = datetime.utcnow()
+  comunicado.updated_at = datetime.now()
   await db.flush()
   await db.refresh(comunicado)
   return comunicado

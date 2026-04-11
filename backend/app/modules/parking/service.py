@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.parking import repository as repo
 from app.modules.parking.models import EstadoSorteo
 from app.modules.parking.schemas import (
+    ConfigParqueaderoResponse, ConfigParqueaderoUpdate,
     ParqueaderoCreate, ParqueaderoUpdate, ParqueaderoResponse,
+    ParqueaderoEstadoResponse,
     VehiculoResidenteCreate, VehiculoResidenteUpdate, VehiculoResidenteResponse,
     AsignacionCreate, AsignacionResponse,
     SorteoCreate, SorteoResponse,
@@ -15,8 +17,43 @@ from app.modules.parking.schemas import (
   )
 
 # ======================================
+#         CONFIGURACIÓN
+# ======================================
+
+async def get_config(tenant_id: uuid.UUID, db: AsyncSession) -> ConfigParqueaderoResponse:
+  tenant = await repo.get_tenant(db, tenant_id)
+  if not tenant:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conjunto no encontrado")
+  return ConfigParqueaderoResponse(requiere_sorteo=tenant.requiere_sorteo_parqueadero)
+
+async def update_config(
+    tenant_id: uuid.UUID, data: ConfigParqueaderoUpdate, db: AsyncSession
+  ) -> ConfigParqueaderoResponse:
+  tenant = await repo.get_tenant(db, tenant_id)
+  if not tenant:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conjunto no encontrado")
+  await repo.update_tenant_config(db, tenant, {"requiere_sorteo_parqueadero": data.requiere_sorteo})
+  return ConfigParqueaderoResponse(requiere_sorteo=data.requiere_sorteo)
+
+# ======================================
 #         PARQUEADEROS
 # ======================================
+
+async def estado_parqueaderos(tenant_id: uuid.UUID, db: AsyncSession) -> list[ParqueaderoEstadoResponse]:
+  parqueaderos, asig_map = await repo.get_estado_parqueaderos(db, tenant_id)
+  result = []
+  for p in parqueaderos:
+    info = asig_map.get(p.id, {})
+    result.append(ParqueaderoEstadoResponse(
+      id=p.id,
+      numero=p.numero,
+      tipo=p.tipo,
+      is_ocupado=p.id in asig_map,
+      unidad_id=info.get("unidad_id"),
+      numero_unidad=info.get("numero_unidad"),
+      nombre_torre=info.get("nombre_torre"),
+    ))
+  return result
 
 async def listar_parqueaderos(tenant_id: uuid.UUID, db: AsyncSession) -> list[ParqueaderoResponse]:
   items = await repo.get_parqueaderos(db, tenant_id)
@@ -197,7 +234,7 @@ async def inscribirse_sorteo(
 
 async def listar_sorteos(tenant_id: uuid.UUID, db: AsyncSession) -> list[SorteoResponse]:
   items = await repo.get_sorteos(db, tenant_id)
-  return [SorteoResponse.model_validate(s) for s in items]
+  return [SorteoResponse.from_orm_sorteo(s) for s in items]
 
 
 async def crear_sorteo(
@@ -206,11 +243,12 @@ async def crear_sorteo(
   sorteo = await repo.create_sorteo(db, {
     "tenant_id": tenant_id,
     "fecha_sorteo": data.fecha_sorteo,
+    "fecha_limite_inscripcion": data.fecha_limite_inscripcion,
     "n_cupos": data.n_cupos,
     "estado": EstadoSorteo.PROGRAMADO,
   })
   sorteo = await repo.get_sorteo_by_id(db, sorteo.id, tenant_id)
-  return SorteoResponse.model_validate(sorteo)
+  return SorteoResponse.from_orm_sorteo(sorteo)
 
 async def ejecutar_sorteo(
     sorteo_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession
@@ -241,7 +279,7 @@ async def ejecutar_sorteo(
 
   await repo.update_sorteo(db, sorteo, {"estado": EstadoSorteo.EJECUTADO})
   sorteo = await repo.get_sorteo_by_id(db, sorteo_id, tenant_id)
-  return SorteoResponse.model_validate(sorteo)
+  return SorteoResponse.from_orm_sorteo(sorteo)
 
 async def agregar_participacion(
     sorteo_id: uuid.UUID, tenant_id: uuid.UUID,
@@ -263,4 +301,4 @@ async def agregar_participacion(
     )
   await repo.add_participacion(db, sorteo_id, unidad_id)
   sorteo = await repo.get_sorteo_by_id(db, sorteo_id, tenant_id)
-  return SorteoResponse.model_validate(sorteo)
+  return SorteoResponse.from_orm_sorteo(sorteo)

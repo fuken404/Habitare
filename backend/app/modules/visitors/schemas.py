@@ -67,8 +67,10 @@ class AutorizacionResponse(BaseModel):
   tenant_id: uuid.UUID
   unidad_id: uuid.UUID
   numero_unidad: str | None = None
+  nombre_torre: str | None = None
   visitante: VisitanteResponse
   autorizado_por: uuid.UUID
+  nombre_autorizado_por: str | None = None
   fecha_visita: date
   requiere_parqueadero: bool
   estado: EstadoAutorizacion
@@ -81,6 +83,11 @@ class AutorizacionResponse(BaseModel):
     data = cls.model_validate(obj)
     if obj.unidad is not None:
       data.numero_unidad = obj.unidad.numero
+      if obj.unidad.torre is not None:
+        data.nombre_torre = obj.unidad.torre.nombre
+    if obj.usuario is not None:
+      apellido = obj.usuario.apellido or ''
+      data.nombre_autorizado_por = f"{obj.usuario.nombre} {apellido}".strip()
     return data
 
   model_config = {"from_attributes": True}
@@ -90,8 +97,10 @@ class AutorizacionResponse(BaseModel):
 # ======================================
 
 class IngresoCreate(BaseModel):
-  visitante_documento: str                  # buscar visitante por documento
-  autorizacion_id: uuid.UUID | None = None  # opcional: visita sin preautorización
+  autorizacion_id: uuid.UUID | None = None   # identificar por autorización
+  visitante_documento: str | None = None     # alternativa: buscar por documento
+  tipo_vehiculo: str | None = None           # "carro" | "moto" — requerido si requiere_parqueadero
+  placa: str | None = None                   # placa del vehículo
 
 class IngresoResponse(BaseModel):
   id: uuid.UUID

@@ -1,27 +1,23 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
 from app.modules.external_personnel.models import (
     TipoDocumentoExterno, TipoPersonalExterno
   )
 
 class IngresoExternoCreate(BaseModel):
-  tipo_documento: TipoDocumentoExterno
-  n_documento: str
   nombre: str
-  tipo_personal: TipoPersonalExterno
   empresa: str | None = None
   motivo: str
-  fecha_hora_ingreso: datetime
+  tipo_documento: TipoDocumentoExterno = TipoDocumentoExterno.OTRO
+  n_documento: str = ""
+  tipo_personal: TipoPersonalExterno = TipoPersonalExterno.CONTRATISTA
   observaciones: str | None = None
 
 class IngresoExternoUpdate(BaseModel):
   empresa: str | None = None
   motivo: str | None = None
   observaciones: str | None = None
-
-class SalidaExternoRequest(BaseModel):
-  fecha_hora_salida: datetime
 
 class IngresoExternoResponse(BaseModel):
   id: uuid.UUID
@@ -38,16 +34,15 @@ class IngresoExternoResponse(BaseModel):
   observaciones: str | None
   created_at: datetime
   updated_at: datetime
-  
+
   model_config = {"from_attributes": True}
 
 class IngresoExternoListResponse(BaseModel):
   id: uuid.UUID
   nombre: str
-  n_documento: str
-  tipo_personal: TipoPersonalExterno
   empresa: str | None
+  motivo: str
   fecha_hora_ingreso: datetime
   fecha_hora_salida: datetime | None
-  
+
   model_config = {"from_attributes": True}

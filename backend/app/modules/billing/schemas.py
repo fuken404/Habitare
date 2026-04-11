@@ -33,8 +33,9 @@ class PagoListResponse(BaseModel):
   monto: Decimal
   fecha_pago: date
   metodo_pago: MetodoPago
+  referencia: str | None = None
   estado: EstadoPago
-  
+
   model_config = {"from_attributes": True}
 
 class FacturaResponse(BaseModel):
@@ -62,8 +63,19 @@ class FacturaListResponse(BaseModel):
   fecha_vencimiento: date
   monto_total: Decimal
   estado: EstadoFactura
-  
+  numero_unidad: str | None = None
+  nombre_torre: str | None = None
+
   model_config = {"from_attributes": True}
+
+  @classmethod
+  def from_orm_factura(cls, f: object) -> "FacturaListResponse":
+    obj = cls.model_validate(f)
+    if hasattr(f, "unidad") and f.unidad:  # type: ignore[union-attr]
+      obj.numero_unidad = f.unidad.numero  # type: ignore[union-attr]
+      if f.unidad.torre:  # type: ignore[union-attr]
+        obj.nombre_torre = f.unidad.torre.nombre  # type: ignore[union-attr]
+    return obj
 
 # ======================================
 #          PAGO

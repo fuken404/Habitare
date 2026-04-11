@@ -7,7 +7,9 @@ from app.dependencies import require_roles, get_tenant_id
 from app.modules.users.models import TipoRol
 from app.modules.auth.schemas import MeResponse
 from app.modules.parking.schemas import (
+    ConfigParqueaderoResponse, ConfigParqueaderoUpdate,
     ParqueaderoCreate, ParqueaderoUpdate, ParqueaderoResponse,
+    ParqueaderoEstadoResponse,
     VehiculoResidenteCreate, VehiculoResidenteUpdate, VehiculoResidenteResponse,
     AsignacionCreate, AsignacionResponse,
     SorteoCreate, ParticipacionCreate, SorteoResponse,
@@ -22,8 +24,37 @@ _ROLES_OPERACION = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION
 _ROLES_TODOS = (TipoRol.RESIDENTE, TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
 
 # ======================================
+#         CONFIGURACIÓN
+# ======================================
+
+@router.get("/config", response_model=ConfigParqueaderoResponse)
+async def obtener_config(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    _: MeResponse = Depends(require_roles(*_ROLES_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+  ):
+  return await parking_service.get_config(tenant_id, db)
+
+@router.patch("/config", response_model=ConfigParqueaderoResponse)
+async def actualizar_config(
+    body: ConfigParqueaderoUpdate,
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    _: MeResponse = Depends(require_roles(*_ROLES_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+  ):
+  return await parking_service.update_config(tenant_id, body, db)
+
+# ======================================
 #         PARQUEADEROS
 # ======================================
+
+@router.get("/estado", response_model=list[ParqueaderoEstadoResponse])
+async def estado_parqueaderos(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    _: MeResponse = Depends(require_roles(*_ROLES_OPERACION)),
+    db: AsyncSession = Depends(get_db),
+  ):
+  return await parking_service.estado_parqueaderos(tenant_id, db)
 
 @router.get("/parqueaderos", response_model=list[ParqueaderoResponse])
 async def listar_parqueaderos(

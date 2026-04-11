@@ -39,7 +39,7 @@ class NotificationModel {
 }
 
 final notificationsProvider =
-    FutureProvider<List<NotificationModel>>((ref) async {
+    FutureProvider.autoDispose<List<NotificationModel>>((ref) async {
   final response = await ApiClient.instance.get('/notifications');
   final list = response.data as List<dynamic>;
   return list
@@ -47,7 +47,7 @@ final notificationsProvider =
       .toList();
 });
 
-final unreadCountProvider = Provider<int>((ref) {
+final unreadCountProvider = Provider.autoDispose<int>((ref) {
   return ref.watch(notificationsProvider).valueOrNull
           ?.where((n) => !n.leida)
           .length ??

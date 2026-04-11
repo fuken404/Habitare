@@ -32,7 +32,7 @@ async def create_plan(db: AsyncSession, data: dict) -> Plan:
 async def update_plan(db: AsyncSession, plan: Plan, data: dict) -> Plan:
   for key, value in data.items():
     setattr(plan, key, value)
-  plan.updated_at = datetime.utcnow()
+  plan.updated_at = datetime.now()
   await db.flush()
   await db.refresh(plan)
   return plan
@@ -75,7 +75,7 @@ async def update_suscripcion(
   ) -> Suscripcion:
   for key, value in data.items():
     setattr(suscripcion, key, value)
-  suscripcion.updated_at = datetime.utcnow()
+  suscripcion.updated_at = datetime.now()
   await db.flush()
   await db.refresh(suscripcion)
   return suscripcion
@@ -106,7 +106,7 @@ async def update_pago_suscripcion(
   ) -> PagoSuscripcion:
   for key, value in data.items():
     setattr(pago, key, value)
-  pago.updated_at = datetime.utcnow()
+  pago.updated_at = datetime.now()
   await db.flush()
   await db.refresh(pago)
   return pago

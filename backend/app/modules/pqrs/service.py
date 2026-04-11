@@ -12,6 +12,14 @@ from app.modules.pqrs.schemas import (
   )
 from app.modules.users.models import TipoRol
 
+_LABEL_ESTADO: dict[EstadoPQRS, str] = {
+    EstadoPQRS.ABIERTA:     "Abierta",
+    EstadoPQRS.EN_PROCESO:  "En proceso",
+    EstadoPQRS.RESUELTA:    "Resuelta",
+    EstadoPQRS.CERRADA:     "Cerrada",
+    EstadoPQRS.RECHAZADA:   "Rechazada",
+}
+
 # Transiciones válidas por estado
 _TRANSICIONES: dict[EstadoPQRS, list[EstadoPQRS]] = {
     EstadoPQRS.ABIERTA:     [EstadoPQRS.EN_PROCESO, EstadoPQRS.RECHAZADA],
@@ -59,7 +67,7 @@ async def listar_pqrs(
     db: AsyncSession,
   ) -> list[PQRSListResponse]:
   items = await repo.get_pqrs_list(db, tenant_id, estado, unidad_id)
-  return [PQRSListResponse.model_validate(p) for p in items]
+  return [PQRSListResponse.from_orm_pqrs(p) for p in items]
 
 async def obtener_pqrs(
     pqrs_id: uuid.UUID,
@@ -72,7 +80,7 @@ async def obtener_pqrs(
   pqrs = await repo.get_pqrs_by_id(db, pqrs_id, tenant_id, include_internos=es_admin)
   if not pqrs:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PQRS no encontrada")
-  return PQRSResponse.model_validate(pqrs)
+  return PQRSResponse.from_orm_pqrs(pqrs)
 
 async def crear_pqrs(
     tenant_id: uuid.UUID,
@@ -80,7 +88,7 @@ async def crear_pqrs(
     data: PQRSCreate,
     db: AsyncSession,
   ) -> PQRSResponse:
-  year = datetime.utcnow().year
+  year = datetime.now().year
   count = await repo.count_pqrs_by_year(db, tenant_id, year)
   numero_radicado = f"PQRS-{year}-{count + 1:03d}"
   pqrs = await repo.create_pqrs(db, {
@@ -102,7 +110,7 @@ async def crear_pqrs(
       db, pqrs.id, adj.nombre, adj.mime_type, adj.contenido_b64
     )
   pqrs = await repo.get_pqrs_by_id(db, pqrs.id, tenant_id)
-  return PQRSResponse.model_validate(pqrs)
+  return PQRSResponse.from_orm_pqrs(pqrs)
 
 async def actualizar_pqrs(
     pqrs_id: uuid.UUID,
@@ -124,7 +132,7 @@ async def actualizar_pqrs(
         status_code=status.HTTP_409_CONFLICT,
         detail=f"Transición inválida: '{pqrs.estado}' → '{nuevo_estado}'"
       )
-    now = datetime.utcnow()
+    now = datetime.now()
     # Primera respuesta: cuando pasa de ABIERTA a EN_PROCESO
     if (
       pqrs.estado == EstadoPQRS.ABIERTA
@@ -138,12 +146,12 @@ async def actualizar_pqrs(
     # Nota interna automática del cambio de estado
     await repo.create_mensaje(
       db, pqrs_id, usuario_id,
-      contenido=f"Estado actualizado a '{nuevo_estado}'.",
+      contenido=f"Estado actualizado a '{_LABEL_ESTADO.get(nuevo_estado, nuevo_estado.value)}'.",
       is_interno=True,
     )
   pqrs = await repo.update_pqrs(db, pqrs, cambios)
   pqrs = await repo.get_pqrs_by_id(db, pqrs_id, tenant_id)
-  return PQRSResponse.model_validate(pqrs)
+  return PQRSResponse.from_orm_pqrs(pqrs)
 
 # ======================================
 #           MENSAJE PQRS

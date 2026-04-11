@@ -23,7 +23,7 @@ async def listar_facturas(
     db: AsyncSession,
   ) -> list[FacturaListResponse]:
   items = await repo.get_facturas(db, tenant_id, unidad_id, estado)
-  return [FacturaListResponse.model_validate(f) for f in items]
+  return [FacturaListResponse.from_orm_factura(f) for f in items]
 
 async def obtener_factura(
     factura_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession

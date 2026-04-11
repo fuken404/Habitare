@@ -94,7 +94,7 @@ class VisitorApiModel {
 }
 
 final visitorsProvider =
-    FutureProvider<List<VisitorApiModel>>((ref) async {
+    FutureProvider.autoDispose<List<VisitorApiModel>>((ref) async {
   final user = ref.watch(authProvider).user;
   final response =
       await ApiClient.instance.get('/visitors/autorizaciones');

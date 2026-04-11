@@ -22,7 +22,7 @@ async def listar_comunicados(
     db: AsyncSession,
   ) -> list[ComunicadoListResponse]:
   items = await repo.get_comunicados(db, tenant_id, estado)
-  return [ComunicadoListResponse.model_validate(c) for c in items]
+  return [ComunicadoListResponse.from_orm_comunicado(c) for c in items]
 
 async def obtener_comunicado(
     comunicado_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession
@@ -87,7 +87,7 @@ async def publicar_comunicado(
       )
   comunicado = await repo.update_comunicado(db, comunicado, {
     "estado": EstadoComunicado.PUBLICADO,
-    "fecha_publicacion": datetime.utcnow(),
+    "fecha_publicacion": datetime.now(),
   })
   comunicado = await repo.get_comunicado_by_id(db, comunicado_id, tenant_id)
   return ComunicadoResponse.model_validate(comunicado)

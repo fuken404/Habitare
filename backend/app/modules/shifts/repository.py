@@ -70,7 +70,7 @@ async def update_turno(
   ) -> Turno:
   for key, value in data.items():
     setattr(turno, key, value)
-  turno.updated_at = datetime.utcnow()
+  turno.updated_at = datetime.now()
   await db.flush()
   await db.refresh(turno)
   return turno

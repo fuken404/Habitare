@@ -8,7 +8,7 @@ from app.modules.users.models import TipoRol
 from app.modules.auth.schemas import MeResponse
 from app.modules.packages.models import EstadoPaquete
 from app.modules.packages.schemas import (
-    PaqueteCreate, PaqueteResponse, PaqueteListResponse
+    PaqueteCreate, PaqueteEntregaCreate, PaqueteResponse, PaqueteListResponse
   )
 from app.modules.packages import service as packages_service
 
@@ -18,13 +18,14 @@ _ROLES_OPERACION = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION
 
 @router.get("", response_model=list[PaqueteListResponse])
 async def listar_paquetes(
-    estado: EstadoPaquete | None = Query(default=None, description="Filtrar por estado"),
-    unidad_id: uuid.UUID | None = Query(default=None, description="Filtrar por unidad"),
+    estado: EstadoPaquete | None = Query(default=None),
+    unidad_id: uuid.UUID | None = Query(default=None),
+    solo_semana: bool = Query(default=False, description="Solo paquetes retirados en los últimos 7 días"),
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     _: MeResponse = Depends(require_roles(*_ROLES_OPERACION)),
     db: AsyncSession = Depends(get_db),
   ):
-  return await packages_service.listar_paquetes(tenant_id, estado, unidad_id, db)
+  return await packages_service.listar_paquetes(tenant_id, estado, unidad_id, solo_semana, db)
 
 @router.get("/{paquete_id}", response_model=PaqueteResponse)
 async def obtener_paquete(
@@ -42,25 +43,16 @@ async def registrar_paquete(
     current_user: MeResponse = Depends(require_roles(*_ROLES_OPERACION)),
     db: AsyncSession = Depends(get_db),
   ):
-  """
-  Registra la llegada de un paquete para una unidad.
-  Queda en estado PENDIENTE hasta que el residente lo retire.
-  """
-  return await packages_service.registrar_paquete(
-    tenant_id, current_user.id, body, db
-  )
+  return await packages_service.registrar_paquete(tenant_id, current_user.id, body, db)
 
 @router.patch("/{paquete_id}/entregar", response_model=PaqueteResponse)
 async def entregar_paquete(
     paquete_id: uuid.UUID,
+    body: PaqueteEntregaCreate = PaqueteEntregaCreate(),
     tenant_id: uuid.UUID = Depends(get_tenant_id),
     current_user: MeResponse = Depends(require_roles(*_ROLES_OPERACION)),
     db: AsyncSession = Depends(get_db),
   ):
-  """
-  Solo aplica sobre paquetes en estado PENDIENTE.
-  Marca el paquete como RETIRADO. Registra quién lo entregó y a qué hora.
-  """
   return await packages_service.entregar_paquete(
-    paquete_id, tenant_id, current_user.id, db
+    paquete_id, tenant_id, current_user.id, body, db
   )

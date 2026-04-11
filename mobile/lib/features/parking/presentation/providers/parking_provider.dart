@@ -30,7 +30,7 @@ class SorteoActivoModel {
   }
 }
 
-final sorteoActivoProvider = FutureProvider<SorteoActivoModel?>((ref) async {
+final sorteoActivoProvider = FutureProvider.autoDispose<SorteoActivoModel?>((ref) async {
   try {
     final response = await ApiClient.instance.get('/parking/sorteos/activo');
     return SorteoActivoModel.fromJson(response.data as Map<String, dynamic>);

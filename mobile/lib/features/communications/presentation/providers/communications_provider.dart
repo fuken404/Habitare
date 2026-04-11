@@ -3,7 +3,7 @@ import 'package:habitare/core/network/api_client.dart';
 import 'package:habitare/features/communications/domain/communication_model.dart';
 
 final communicationsProvider =
-    FutureProvider<List<CommunicationModel>>((ref) async {
+    FutureProvider.autoDispose<List<CommunicationModel>>((ref) async {
   final response = await ApiClient.instance.get('/communications');
   final list = response.data as List<dynamic>;
   return list
@@ -12,7 +12,7 @@ final communicationsProvider =
 });
 
 final communicationDetailProvider =
-    FutureProvider.family<CommunicationDetail, String>((ref, id) async {
+    FutureProvider.autoDispose.family<CommunicationDetail, String>((ref, id) async {
   final response = await ApiClient.instance.get('/communications/$id');
   return CommunicationDetail.fromJson(
       response.data as Map<String, dynamic>);

@@ -1,9 +1,15 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:habitare/core/network/api_client.dart';
 import 'package:habitare/core/theme/app_colors.dart';
 import 'package:habitare/features/auth/presentation/providers/auth_provider.dart';
@@ -140,6 +146,7 @@ class _VisitorDetailScreenState extends ConsumerState<VisitorDetailScreen> {
             _QRCard(
               authCode: _authCode,
               isVigente: _isVigente,
+              visitorName: visitor.name,
             ),
             const SizedBox(height: 24),
 
@@ -375,10 +382,65 @@ class _Divider extends StatelessWidget {
 }
 
 // ── Card: QR de autorización ───────────────────────────────────────────────────
-class _QRCard extends StatelessWidget {
-  const _QRCard({required this.authCode, required this.isVigente});
+class _QRCard extends StatefulWidget {
+  const _QRCard({required this.authCode, required this.isVigente, required this.visitorName});
   final String authCode;
   final bool isVigente;
+  final String visitorName;
+
+  @override
+  State<_QRCard> createState() => _QRCardState();
+}
+
+class _QRCardState extends State<_QRCard> {
+  final _qrKey = GlobalKey();
+  final _shareButtonKey = GlobalKey();
+  bool _isSharing = false;
+
+  Rect? _getShareButtonRect() {
+    final box = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return null;
+    final position = box.localToGlobal(Offset.zero);
+    return position & box.size;
+  }
+
+  Future<void> _compartir() async {
+    if (_isSharing) return;
+    // Capturar el rect del botón antes de cambiar estado (iOS lo necesita)
+    final shareRect = _getShareButtonRect();
+    setState(() => _isSharing = true);
+    try {
+      // Capturar el widget QR como imagen PNG
+      final boundary =
+          _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData!.buffer.asUint8List();
+
+      // Guardar en directorio temporal
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/qr_habitare.png');
+      await file.writeAsBytes(pngBytes);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text:
+            'Hola ${widget.visitorName}, este es tu código de acceso para ingresar al conjunto.\n\nCódigo: ${widget.authCode}',
+        subject: 'Tu QR de acceso - Habitare',
+        sharePositionOrigin: shareRect,
+      );
+    } catch (_) {
+      // Si falla la imagen, compartir solo el código
+      final shareRect2 = _getShareButtonRect();
+      await Share.share(
+        'Hola ${widget.visitorName}, este es tu código de acceso para ingresar al conjunto.\n\nCódigo: ${widget.authCode}',
+        subject: 'Tu QR de acceso - Habitare',
+        sharePositionOrigin: shareRect2,
+      );
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -388,9 +450,8 @@ class _QRCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isVigente ? AppColors.primary : AppColors.gray200,
-          width: isVigente ? 1.5 : 1,
-          // strokeAlign: BorderSide.strokeAlignInside,
+          color: widget.isVigente ? AppColors.primary : AppColors.gray200,
+          width: widget.isVigente ? 1.5 : 1,
         ),
       ),
       child: Column(
@@ -398,24 +459,21 @@ class _QRCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                isVigente
-                    ? Icons.qr_code_2_rounded
-                    : Icons.qr_code_2_rounded,
+                Icons.qr_code_2_rounded,
                 size: 18,
-                color: isVigente ? AppColors.primary : AppColors.gray400,
+                color: widget.isVigente ? AppColors.primary : AppColors.gray400,
               ),
               const SizedBox(width: 6),
               Text(
                 'QR de Autorización',
                 style: AppTextStyles.smallSemibold.copyWith(
-                  color: isVigente ? AppColors.primary : AppColors.gray500,
+                  color: widget.isVigente ? AppColors.primary : AppColors.gray500,
                 ),
               ),
               const Spacer(),
-              if (!isVigente)
+              if (!widget.isVigente)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: AppColors.gray100,
                     borderRadius: BorderRadius.circular(12),
@@ -424,44 +482,73 @@ class _QRCard extends StatelessWidget {
                       style: AppTextStyles.badge
                           .copyWith(color: AppColors.gray500)),
                 ),
+              if (widget.isVigente) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  key: _shareButtonKey,
+                  onTap: _isSharing ? null : _compartir,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.info2Bg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _isSharing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: AppColors.primary),
+                          )
+                        : const Icon(Icons.share_outlined,
+                            size: 16, color: AppColors.primary),
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 20),
 
-          // QR Code
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.gray200),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(7),
-              child: ColorFiltered(
-                colorFilter: isVigente
-                    ? const ColorFilter.mode(
-                        Colors.transparent, BlendMode.multiply)
-                    : const ColorFilter.matrix([
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0.2126, 0.7152, 0.0722, 0, 0,
-                        0,      0,      0,      1, 0,
-                      ]),
-                child: QrImageView(
-                  data: authCode,
-                  version: QrVersions.auto,
-                  size: 199,
-                  backgroundColor: AppColors.white,
-                  eyeStyle: QrEyeStyle(
-                    eyeShape: QrEyeShape.square,
-                    color: isVigente
-                        ? AppColors.gray900
-                        : AppColors.gray400,
-                  ),
-                  dataModuleStyle: QrDataModuleStyle(
-                    dataModuleShape: QrDataModuleShape.square,
-                    color: isVigente
-                        ? AppColors.gray900
-                        : AppColors.gray400,
+          // QR Code — envuelto en RepaintBoundary para captura
+          RepaintBoundary(
+            key: _qrKey,
+            child: Container(
+              color: AppColors.white,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.gray200),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(7),
+                  child: ColorFiltered(
+                    colorFilter: widget.isVigente
+                        ? const ColorFilter.mode(
+                            Colors.transparent, BlendMode.multiply)
+                        : const ColorFilter.matrix([
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0,      0,      0,      1, 0,
+                          ]),
+                    child: QrImageView(
+                      data: widget.authCode,
+                      version: QrVersions.auto,
+                      size: 199,
+                      backgroundColor: AppColors.white,
+                      eyeStyle: QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: widget.isVigente
+                            ? AppColors.gray900
+                            : AppColors.gray400,
+                      ),
+                      dataModuleStyle: QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: widget.isVigente
+                            ? AppColors.gray900
+                            : AppColors.gray400,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -469,11 +556,11 @@ class _QRCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Código de autorización
+          // Código de autorización con botón de copiar
           GestureDetector(
-            onTap: isVigente
+            onTap: widget.isVigente
                 ? () {
-                    Clipboard.setData(ClipboardData(text: authCode));
+                    Clipboard.setData(ClipboardData(text: widget.authCode));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Código copiado al portapapeles'),
@@ -485,7 +572,7 @@ class _QRCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: isVigente ? AppColors.info2Bg : AppColors.gray100,
+                color: widget.isVigente ? AppColors.info2Bg : AppColors.gray100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -493,16 +580,17 @@ class _QRCard extends StatelessWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      authCode,
+                      widget.authCode,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.badge.copyWith(
-                        color:
-                            isVigente ? AppColors.primary : AppColors.gray400,
+                        color: widget.isVigente
+                            ? AppColors.primary
+                            : AppColors.gray400,
                         letterSpacing: 1.2,
                       ),
                     ),
                   ),
-                  if (isVigente) ...[
+                  if (widget.isVigente) ...[
                     const SizedBox(width: 8),
                     Icon(Icons.copy_rounded,
                         size: 14, color: AppColors.primary),
@@ -512,10 +600,10 @@ class _QRCard extends StatelessWidget {
             ),
           ),
 
-          if (isVigente) ...[
+          if (widget.isVigente) ...[
             const SizedBox(height: 12),
             Text(
-              'Muestra este QR al ingresar al conjunto',
+              'Muestra o comparte este QR con tu visitante',
               style: AppTextStyles.small.copyWith(color: AppColors.gray400),
               textAlign: TextAlign.center,
             ),

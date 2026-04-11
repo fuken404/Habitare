@@ -19,6 +19,8 @@
 	<string>Habitare necesita acceso a tu galería para que puedas cambiar tu foto de perfil.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Habitare necesita acceso a la cámara para que puedas tomar una foto de perfil.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Usa Face ID para iniciar sesión en Habitare de forma rápida y segura.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

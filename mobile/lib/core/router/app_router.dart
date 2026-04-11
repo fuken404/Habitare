@@ -22,11 +22,20 @@ import 'package:habitare/features/pqrs/presentation/screens/pqrs_detail_screen.d
 import 'package:habitare/features/pqrs/presentation/screens/pqrs_form_screen.dart';
 import 'package:habitare/features/pqrs/presentation/screens/pqrs_list_screen.dart';
 import 'package:habitare/features/pqrs/presentation/screens/pqrs_success_screen.dart';
+import 'package:habitare/features/security/domain/security_models.dart';
+import 'package:habitare/features/security/presentation/screens/security_common_areas_screen.dart';
+import 'package:habitare/features/security/presentation/screens/security_dashboard_screen.dart';
+import 'package:habitare/features/security/presentation/screens/security_profile_screen.dart';
+import 'package:habitare/features/security/presentation/screens/security_reportes_screen.dart';
+import 'package:habitare/features/security/presentation/screens/security_qr_scanner_screen.dart';
+import 'package:habitare/features/security/presentation/screens/security_visitor_detail_screen.dart';
+import 'package:habitare/features/security/presentation/screens/security_visitors_screen.dart';
 import 'package:habitare/features/visitors/domain/visitor_model.dart';
 import 'package:habitare/features/visitors/presentation/screens/create_visit_screen.dart';
 import 'package:habitare/features/visitors/presentation/screens/visitor_detail_screen.dart';
 import 'package:habitare/features/visitors/presentation/screens/visitors_screen.dart';
 import 'package:habitare/shared/widgets/bottom_nav_shell.dart';
+import 'package:habitare/shared/widgets/security_bottom_nav_shell.dart';
 
 GoRouter buildRouter(Ref ref) {
   return GoRouter(
@@ -38,13 +47,39 @@ GoRouter buildRouter(Ref ref) {
       final isAuth = authState.isAuthenticated;
       final isLoading = authState.isLoading;
       if (isLoading) return null;
+
       const publicRoutes = ['/login', '/forgot-password'];
-      if (!isAuth && !publicRoutes.contains(state.matchedLocation)) return '/login';
-      if (isAuth && state.matchedLocation == '/login') return '/dashboard';
+      if (!isAuth && !publicRoutes.contains(state.matchedLocation)) {
+        return '/login';
+      }
+
+      if (isAuth) {
+        final isSeguridad = authState.user?.rol == 'seguridad';
+        final loc = state.matchedLocation;
+
+        // Desde login → redirige según rol
+        if (loc == '/login') {
+          return isSeguridad ? '/security/dashboard' : '/dashboard';
+        }
+
+        // Seguridad aterrizando en rutas de residente (ej: restauración de sesión)
+        const residentRoots = [
+          '/dashboard', '/visitors', '/billing', '/communications', '/more'
+        ];
+        if (isSeguridad && residentRoots.contains(loc)) {
+          return '/security/dashboard';
+        }
+
+        // Residente aterrizando en rutas de seguridad
+        if (!isSeguridad && loc.startsWith('/security/')) {
+          return '/dashboard';
+        }
+      }
+
       return null;
     },
     routes: [
-      // ── Auth ─────────────────────────────────────────────────────────────
+      // ── Auth ──────────────────────────────────────────────────────────────
       GoRoute(
         path: '/login',
         name: 'login',
@@ -56,7 +91,7 @@ GoRouter buildRouter(Ref ref) {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
 
-      // ── Shell con bottom nav ──────────────────────────────────────────────
+      // ── Shell residente (bottom nav) ──────────────────────────────────────
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) =>
             BottomNavShell(navigationShell: shell),
@@ -99,7 +134,69 @@ GoRouter buildRouter(Ref ref) {
         ],
       ),
 
-      // ── Visitantes (full-screen) ──────────────────────────────────────────
+      // ── Shell seguridad (bottom nav) ──────────────────────────────────────
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) =>
+            SecurityBottomNavShell(navigationShell: shell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/security/reportes',
+              name: 'security-reportes',
+              builder: (c, s) => const SecurityReportesScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/security/visitors',
+              name: 'security-visitors',
+              builder: (c, s) => const SecurityVisitorsScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/security/dashboard',
+              name: 'security-dashboard',
+              builder: (c, s) => const SecurityDashboardScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/security/common-areas',
+              name: 'security-common-areas',
+              builder: (c, s) => const SecurityCommonAreasScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/security/communications',
+              name: 'security-communications',
+              builder: (c, s) => const CommunicationsScreen(),
+            ),
+          ]),
+        ],
+      ),
+
+      // ── Seguridad (full-screen) ───────────────────────────────────────────
+      GoRoute(
+        path: '/security/visitors/detail',
+        name: 'security-visitor-detail',
+        builder: (c, s) => SecurityVisitorDetailScreen(
+          visitor: s.extra as SecurityVisitorApiModel,
+        ),
+      ),
+      GoRoute(
+        path: '/security/visitors/scan',
+        name: 'security-visitor-scan',
+        builder: (c, s) => const SecurityQrScannerScreen(),
+      ),
+      GoRoute(
+        path: '/security/profile',
+        name: 'security-profile',
+        builder: (c, s) => const SecurityProfileScreen(),
+      ),
+
+      // ── Visitantes residente (full-screen) ────────────────────────────────
       GoRoute(
         path: '/visitors/create',
         name: 'create-visit',
@@ -113,7 +210,7 @@ GoRouter buildRouter(Ref ref) {
         ),
       ),
 
-      // ── Comunicados (full-screen) ─────────────────────────────────────────
+      // ── Comunicados (compartido) ──────────────────────────────────────────
       GoRoute(
         path: '/communications/:id',
         name: 'communication-detail',
@@ -135,7 +232,8 @@ GoRouter buildRouter(Ref ref) {
       GoRoute(
         path: '/pqrs/success',
         name: 'pqrs-success',
-        builder: (c, s) => PqrsSuccessScreen(numeroRadicado: s.extra as String?),
+        builder: (c, s) =>
+            PqrsSuccessScreen(numeroRadicado: s.extra as String?),
       ),
       GoRoute(
         path: '/pqrs/:id',
@@ -143,7 +241,7 @@ GoRouter buildRouter(Ref ref) {
         builder: (c, s) => PqrsDetailScreen(id: s.pathParameters['id']!),
       ),
 
-      // ── Zonas Comunes ─────────────────────────────────────────────────────
+      // ── Zonas Comunes residente ───────────────────────────────────────────
       GoRoute(
         path: '/common-areas/reserve',
         name: 'reserve-area',
@@ -160,7 +258,7 @@ GoRouter buildRouter(Ref ref) {
         builder: (c, s) => const ReserveSuccessScreen(),
       ),
 
-      // ── Novedades ─────────────────────────────────────────────────────────
+      // ── Novedades residente ───────────────────────────────────────────────
       GoRoute(
         path: '/incidents/new',
         name: 'report-incident',
@@ -169,7 +267,8 @@ GoRouter buildRouter(Ref ref) {
       GoRoute(
         path: '/incidents/success',
         name: 'incident-success',
-        builder: (c, s) => IncidentSuccessScreen(numeroRadicado: s.extra as String?),
+        builder: (c, s) =>
+            IncidentSuccessScreen(numeroRadicado: s.extra as String?),
       ),
 
       // ── Paquetes ──────────────────────────────────────────────────────────
@@ -179,7 +278,7 @@ GoRouter buildRouter(Ref ref) {
         builder: (c, s) => const PackagesScreen(),
       ),
 
-      // ── Perfil ────────────────────────────────────────────────────────────
+      // ── Perfil residente ──────────────────────────────────────────────────
       GoRoute(
         path: '/profile',
         name: 'profile',

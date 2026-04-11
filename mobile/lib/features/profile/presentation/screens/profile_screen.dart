@@ -240,7 +240,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 16),
 
-            Text('Correo electrónico', style: AppTextStyles.smallSemibold),
+            Text('Usuario', style: AppTextStyles.smallSemibold),
             const SizedBox(height: 8),
             TextField(
               controller: _correoCtrl,

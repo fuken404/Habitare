@@ -17,6 +17,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
+  bool _saveBiometric = false;
+
+  // Biometric availability (loaded once on init)
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final notifier = ref.read(authProvider.notifier);
+    final available = await notifier.isBiometricAvailable();
+    final enabled = await notifier.isBiometricEnabled();
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = available;
+        _biometricEnabled = enabled;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -25,16 +48,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref
-        .read(authProvider.notifier)
-        .login(_emailCtrl.text.trim(), _passwordCtrl.text);
+    await ref.read(authProvider.notifier).login(
+          _emailCtrl.text.trim(),
+          _passwordCtrl.text,
+          saveBiometric: _saveBiometric,
+        );
+  }
+
+  Future<void> _loginWithBiometric() async {
+    await ref.read(authProvider.notifier).loginWithBiometric();
   }
 
   @override
@@ -154,9 +178,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   return null;
                                 },
                               ),
+
+                              // ── Opción guardar biometría ─────────────────
+                              if (_biometricAvailable && !_biometricEnabled) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: Checkbox(
+                                        value: _saveBiometric,
+                                        onChanged: (v) => setState(
+                                            () => _saveBiometric = v ?? false),
+                                        activeColor: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Activar inicio con biometría',
+                                      style: AppTextStyles.small
+                                          .copyWith(color: AppColors.gray600),
+                                    ),
+                                  ],
+                                ),
+                              ],
+
                               const SizedBox(height: 32),
 
-                              // ── Botón ───────────────────────────────────
+                              // ── Botón principal ──────────────────────────
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
@@ -173,6 +223,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       : const Text('Iniciar sesión'),
                                 ),
                               ),
+
+                              // ── Botón biometría ──────────────────────────
+                              if (_biometricAvailable && _biometricEnabled) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: isLoading ? null : _loginWithBiometric,
+                                    icon: const Icon(Icons.fingerprint, size: 22),
+                                    label: const Text('Ingresar con biometría'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primary,
+                                      side: const BorderSide(
+                                          color: AppColors.primary),
+                                    ),
+                                  ),
+                                ),
+                              ],
+
                               const SizedBox(height: 12),
 
                               // ── ¿Olvidaste contraseña? ───────────────────

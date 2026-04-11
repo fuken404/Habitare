@@ -42,7 +42,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _sendEmail() async {
-    if (!_emailFormKey.currentState!.validate()) return;
+    // currentState es null cuando se llama desde "Reenviar" (el form no está montado)
+    if (_emailFormKey.currentState != null &&
+        !_emailFormKey.currentState!.validate()) return;
     setState(() { _isLoading = true; _errorMsg = null; });
     try {
       await ApiClient.instance.post('/auth/forgot-password', data: {

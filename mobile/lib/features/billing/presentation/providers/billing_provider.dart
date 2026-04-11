@@ -3,7 +3,7 @@ import 'package:habitare/core/network/api_client.dart';
 import 'package:habitare/features/auth/presentation/providers/auth_provider.dart';
 import 'package:habitare/features/billing/domain/billing_model.dart';
 
-final billingProvider = FutureProvider<List<FacturaModel>>((ref) async {
+final billingProvider = FutureProvider.autoDispose<List<FacturaModel>>((ref) async {
   final user = ref.watch(authProvider).user;
   final response = await ApiClient.instance.get('/billing/facturas');
   final list = response.data as List<dynamic>;

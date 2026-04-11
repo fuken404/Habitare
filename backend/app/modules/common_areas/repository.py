@@ -49,7 +49,7 @@ async def update_zona(
   ) -> ZonaComun:
   for key, value in data.items():
     setattr(zona, key, value)
-  zona.updated_at = datetime.utcnow()
+  zona.updated_at = datetime.now()
   await db.flush()
   await db.refresh(zona)
   return zona
@@ -94,10 +94,20 @@ async def get_reservas(
     estado: EstadoReserva | None = None,
     fecha: date | None = None,
   ) -> list[ReservaZonaComun]:
+  from app.modules.tenants.models import Unidad
+  from datetime import date as date_type
   query = (
     select(ReservaZonaComun)
-    .where(ReservaZonaComun.tenant_id == tenant_id)
-    .order_by(ReservaZonaComun.fecha_reserva.desc(), ReservaZonaComun.hora_inicio)
+    .where(
+      ReservaZonaComun.tenant_id == tenant_id,
+      ReservaZonaComun.fecha_reserva >= date_type.today(),
+      ReservaZonaComun.estado != EstadoReserva.CANCELADA,
+    )
+    .options(
+      selectinload(ReservaZonaComun.usuario),
+      selectinload(ReservaZonaComun.unidad).selectinload(Unidad.torre),
+    )
+    .order_by(ReservaZonaComun.fecha_reserva.asc(), ReservaZonaComun.hora_inicio)
   )
   if zona_id:
     query = query.where(ReservaZonaComun.zona_comun_id == zona_id)
@@ -158,7 +168,7 @@ async def update_reserva(
   ) -> ReservaZonaComun:
   for key, value in data.items():
     setattr(reserva, key, value)
-  reserva.updated_at = datetime.utcnow()
+  reserva.updated_at = datetime.now()
   await db.flush()
   await db.refresh(reserva)
   return reserva

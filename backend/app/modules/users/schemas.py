@@ -9,11 +9,12 @@ from app.modules.users.models import TipoDocumento, TipoRol
 
 class UsuarioCreate(BaseModel):
   email: EmailStr
-  nombre: str 
+  nombre: str
   apellido: str
   tipo_documento: TipoDocumento
   n_documento: str
   telefono: str | None = None
+  password: str = "Habitare2024!"
 
 class UsuarioUpdate(BaseModel):
   nombre: str | None = None
@@ -50,13 +51,47 @@ class UsuarioResponse(BaseModel):
 #           TENANT_USUARIO
 # ======================================
 
+class StaffListResponse(BaseModel):
+  id: uuid.UUID
+  nombre: str
+  apellido: str
+  email: str
+  tipo_documento: TipoDocumento
+  n_documento: str
+  telefono: str | None
+  avatar_url: str | None
+  rol: str
+  fecha_inicio: date
+  created_at: datetime
+  fecha_salida: date | None = None
+
+  model_config = {"from_attributes": True}
+
 class AsignarUsuarioTenant(BaseModel):
     usuario_id: uuid.UUID
-    unidad_id: uuid.UUID
+    unidad_id: uuid.UUID | None = None
     rol: TipoRol
     fecha_inicio: date
     fecha_fin: date | None = None
 
+
+class ResidenteListResponse(BaseModel):
+  id: uuid.UUID
+  nombre: str
+  apellido: str
+  email: str
+  tipo_documento: TipoDocumento
+  n_documento: str
+  telefono: str | None
+  avatar_url: str | None
+  is_activo: bool
+  unidad_id: uuid.UUID
+  numero_unidad: str | None
+  nombre_torre: str | None
+  created_at: datetime
+  fecha_salida: date | None = None
+
+  model_config = {"from_attributes": True}
 
 class MembresiaResponse(BaseModel):
     id: uuid.UUID

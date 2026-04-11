@@ -9,9 +9,11 @@ from app.modules.auth.schemas import MeResponse
 from app.modules.tenants.schemas import (
   TenantCreate, TenantUpdate, TenantResponse,
   TorreCreate, TorreUpdate, TorreResponse,
-  UnidadCreate, UnidadUpdate, UnidadResponse
+  UnidadCreate, UnidadUpdate, UnidadResponse, UnidadDetalleResponse
 )
 from app.modules.tenants import service as tenants_service
+from app.modules.users import service as users_service
+from app.modules.users.schemas import UsuarioResponse
 
 router =  APIRouter(tags=["Conjuntos"])
 
@@ -50,7 +52,7 @@ async def actualizar_tenant(
 @router.get("/torres", response_model=list[TorreResponse])
 async def listar_torres(
   tenant_id: uuid.UUID = Depends(get_tenant_id),
-  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN, TipoRol.RECEPCION, TipoRol.SEGURIDAD)),
   db: AsyncSession = Depends(get_db)
   ):
   return await tenants_service.listar_torres(tenant_id, db)
@@ -105,10 +107,18 @@ async def eliminar_torre(
 #     UNIDADES — Admin del conjunto
 # ======================================
 
+@router.get("/unidades/detalle", response_model=list[UnidadDetalleResponse])
+async def listar_unidades_detalle(
+  tenant_id: uuid.UUID = Depends(get_tenant_id),
+  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  db: AsyncSession = Depends(get_db)
+  ):
+  return await tenants_service.listar_unidades_detalle(tenant_id, db)
+
 @router.get("/unidades", response_model=list[UnidadResponse])
 async def listar_unidades_por_tenant(
   tenant_id: uuid.UUID = Depends(get_tenant_id),
-  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN, TipoRol.RECEPCION)),
   db: AsyncSession = Depends(get_db)
   ):
   return await tenants_service.listar_unidades_por_tenant(tenant_id, db)
@@ -126,7 +136,7 @@ async def obtener_unidad(
 async def crear_unidad(
   body: UnidadCreate,
   tenant_id: uuid.UUID = Depends(get_tenant_id),
-  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  _: MeResponse = Depends(require_roles(TipoRol.SUPERADMIN)),
   db: AsyncSession = Depends(get_db)
   ):
   return await tenants_service.crear_unidad(tenant_id, body, db)
@@ -136,16 +146,25 @@ async def actualizar_unidad(
   unidad_id: uuid.UUID,
   body: UnidadUpdate,
   tenant_id: uuid.UUID = Depends(get_tenant_id),
-  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  _: MeResponse = Depends(require_roles(TipoRol.SUPERADMIN)),
   db: AsyncSession = Depends(get_db)
   ):
   return await tenants_service.actualizar_unidad(unidad_id, tenant_id, body, db)
 
+@router.get("/unidades/{unidad_id}/residentes", response_model=list[UsuarioResponse])
+async def listar_residentes_unidad(
+  unidad_id: uuid.UUID,
+  tenant_id: uuid.UUID = Depends(get_tenant_id),
+  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN, TipoRol.RECEPCION, TipoRol.SEGURIDAD)),
+  db: AsyncSession = Depends(get_db)
+  ):
+  return await users_service.listar_residentes_unidad(unidad_id, tenant_id, db)
+
 @router.delete("/unidades/{unidad_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def eliminar_unidad(
-  unidad_id: uuid.UUID, 
+  unidad_id: uuid.UUID,
   tenant_id: uuid.UUID = Depends(get_tenant_id),
-  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  _: MeResponse = Depends(require_roles(TipoRol.SUPERADMIN)),
   db: AsyncSession = Depends(get_db)
   ):
   await tenants_service.eliminar_unidad(unidad_id, tenant_id, db)

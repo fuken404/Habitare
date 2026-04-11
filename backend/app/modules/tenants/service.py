@@ -6,7 +6,7 @@ from app.modules.tenants import repository as repo
 from app.modules.tenants.schemas import (
   TenantCreate, TenantUpdate, TenantResponse,
   TorreCreate, TorreUpdate, TorreResponse,
-  UnidadCreate, UnidadUpdate, UnidadResponse
+  UnidadCreate, UnidadUpdate, UnidadResponse, UnidadDetalleResponse
 )
 
 # ======================================
@@ -69,6 +69,10 @@ async def eliminar_torre(torre_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSes
 #                 UNIDAD
 # ======================================
 
+async def listar_unidades_detalle(tenant_id: uuid.UUID, db: AsyncSession) -> list[UnidadDetalleResponse]:
+  rows = await repo.get_unidades_con_residentes(db, tenant_id)
+  return [UnidadDetalleResponse.model_validate(r) for r in rows]
+
 async def listar_unidades_por_tenant(tenant_id: uuid.UUID, db: AsyncSession) -> list[UnidadResponse]:
   unidades = await repo.get_unidades_by_tenant(db, tenant_id)
   return [UnidadResponse.model_validate(u) for u in unidades]
@@ -91,7 +95,7 @@ async def actualizar_unidad(unidad_id: uuid.UUID, tenant_id: uuid.UUID, data: Un
   unidad = await repo.get_unidad_by_id(db, unidad_id, tenant_id)
   if not unidad:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidad no encontrada")
-  unidad = await repo.update_unidad(db, unidad, data.model_dump(exclude_none=True))
+  unidad = await repo.update_unidad(db, unidad, data.model_dump(exclude_unset=True))
   return UnidadResponse.model_validate(unidad)
 
 async def eliminar_unidad(unidad_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession) -> None:

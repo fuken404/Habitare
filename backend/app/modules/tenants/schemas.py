@@ -87,5 +87,25 @@ class UnidadResponse(BaseModel):
   habitada: bool
   created_at: datetime
   updated_at: datetime
-  
+
+  model_config = {"from_attributes": True}
+
+class ResidenteUnidadItem(BaseModel):
+  id: uuid.UUID
+  nombre: str
+  apellido: str
+  avatar_url: str | None
+
+class UnidadDetalleResponse(BaseModel):
+  id: uuid.UUID
+  numero: str
+  tipo: TipoUnidad
+  area_m2: float | None
+  piso: int | None
+  habitada: bool
+  torre_id: uuid.UUID | None
+  nombre_torre: str | None
+  residentes: list[ResidenteUnidadItem]
+  created_at: datetime
+
   model_config = {"from_attributes": True}

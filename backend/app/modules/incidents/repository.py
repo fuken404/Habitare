@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, extract
+from sqlalchemy import select, func, extract, not_
 from sqlalchemy.orm import selectinload
 
+from app.modules.users.models import Usuario, TenantUsuario
 from app.modules.incidents.models import (
     TipoIncidente, Incidente, ActualizacionIncidente, EstadoIncidente
   )
@@ -43,7 +44,7 @@ async def update_tipo(
   ) -> TipoIncidente:
   for key, value in data.items():
     setattr(tipo, key, value)
-  tipo.updated_at = datetime.utcnow()
+  tipo.updated_at = datetime.now()
   await db.flush()
   await db.refresh(tipo)
   return tipo
@@ -61,16 +62,25 @@ async def get_incidentes(
     tenant_id: uuid.UUID,
     estado: EstadoIncidente | None = None,
     unidad_id: uuid.UUID | None = None,
+    excluir_cerrados: bool = False,
   ) -> list[Incidente]:
   query = (
     select(Incidente)
     .where(Incidente.tenant_id == tenant_id)
+    .options(
+      selectinload(Incidente.tipo),
+      selectinload(Incidente.usuario).selectinload(Usuario.membresias).selectinload(TenantUsuario.rol),
+    )
     .order_by(Incidente.created_at.desc())
   )
   if estado:
     query = query.where(Incidente.estado == estado)
   if unidad_id:
     query = query.where(Incidente.unidad_id == unidad_id)
+  if excluir_cerrados:
+    query = query.where(
+      not_(Incidente.estado.in_([EstadoIncidente.CERRADO, EstadoIncidente.RESUELTO]))
+    )
   result = await db.execute(query)
   return list(result.scalars().all())
 
@@ -105,7 +115,7 @@ async def update_incidente(
   ) -> Incidente:
   for key, value in data.items():
     setattr(incidente, key, value)
-  incidente.updated_at = datetime.utcnow()
+  incidente.updated_at = datetime.now()
   await db.flush()
   await db.refresh(incidente)
   return incidente

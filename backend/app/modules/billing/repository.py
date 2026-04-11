@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.modules.billing.models import (
     Factura, Pago, TransaccionPago, EstadoFactura, EstadoPago
 )
+from app.modules.tenants.models import Unidad, Torre
 
 # ======================================
 #          FACTURA
@@ -22,6 +23,7 @@ async def get_facturas(
   query = (
     select(Factura)
     .where(Factura.tenant_id == tenant_id)
+    .options(selectinload(Factura.unidad).selectinload(Unidad.torre))
     .order_by(Factura.fecha_emision.desc())
   )
   if unidad_id:
@@ -53,7 +55,7 @@ async def update_factura(
   ) -> Factura:
   for key, value in data.items():
     setattr(factura, key, value)
-  factura.updated_at = datetime.utcnow()
+  factura.updated_at = datetime.now()
   await db.flush()
   await db.refresh(factura)
   return factura
@@ -95,7 +97,7 @@ async def update_pago(
   ) -> Pago:
   for key, value in data.items():
     setattr(pago, key, value)
-  pago.updated_at = datetime.utcnow()
+  pago.updated_at = datetime.now()
   await db.flush()
   await db.refresh(pago)
   return pago

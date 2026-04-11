@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -27,6 +28,8 @@ class ProfilePhotoNotifier extends AsyncNotifier<File?> {
     final dir = await getApplicationDocumentsDirectory();
     final dest = File(p.join(dir.path, _fileName));
     await File(picked.path).copy(dest.path);
+    // Limpiar el cache de imagen para que Flutter cargue el archivo nuevo
+    await FileImage(dest).evict();
     state = AsyncData(dest);
   }
 

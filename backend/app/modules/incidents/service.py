@@ -65,9 +65,10 @@ async def listar_incidentes(
     estado: EstadoIncidente | None,
     unidad_id: uuid.UUID | None,
     db: AsyncSession,
+    excluir_cerrados: bool = False,
   ) -> list[IncidenteListResponse]:
-  items = await repo.get_incidentes(db, tenant_id, estado, unidad_id)
-  return [IncidenteListResponse.model_validate(i) for i in items]
+  items = await repo.get_incidentes(db, tenant_id, estado, unidad_id, excluir_cerrados)
+  return [IncidenteListResponse.from_orm_incidente(i) for i in items]
 
 async def obtener_incidente(
     incidente_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession
@@ -88,7 +89,7 @@ async def crear_incidente(
   if not tipo:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tipo de incidente no encontrado")
 
-  year = datetime.utcnow().year
+  year = datetime.now().year
   count = await repo.count_incidentes_by_year(db, tenant_id, year)
   numero_radicado = f"NOV-{year}-{count + 1:03d}"
 
@@ -105,7 +106,33 @@ async def crear_incidente(
     db, incidente.id, usuario_id,
     descripcion="Incidente reportado."
   )
-  
+
+  # Notificar a todos los usuarios de seguridad del tenant
+  try:
+    from app.modules.users.repository import get_usuario_ids_by_rol
+    from app.modules.users.models import TipoRol
+    from app.modules.notifications import service as notif_service
+    from app.modules.notifications.schemas import NotificacionCreate
+    from app.modules.notifications.models import TipoNotificacion, CanalNotificacion
+
+    seguridad_ids = await get_usuario_ids_by_rol(db, tenant_id, TipoRol.SEGURIDAD)
+    for seg_id in seguridad_ids:
+      await notif_service.crear_notificacion(
+        tenant_id,
+        NotificacionCreate(
+          usuario_id=seg_id,
+          titulo="Nueva novedad reportada",
+          mensaje=f"{incidente.titulo}",
+          tipo=TipoNotificacion.ALERTA,
+          canal=CanalNotificacion.PUSH,
+          entidad_tipo="incidente",
+          entidad_id=incidente.id,
+        ),
+        db,
+      )
+  except Exception:
+    pass  # Las notificaciones son best-effort
+
   incidente = await repo.get_incidente_by_id(db, incidente.id, tenant_id)
   return IncidenteResponse.model_validate(incidente)
 
@@ -133,7 +160,7 @@ async def actualizar_incidente(
       )
     # Si pasa a RESUELTO, registrar fecha de resolución
     if nuevo_estado == EstadoIncidente.RESUELTO:
-      cambios["fecha_resolucion"] = datetime.utcnow()
+      cambios["fecha_resolucion"] = datetime.now()
   incidente = await repo.update_incidente(db, incidente, cambios)
   # Bitácora automática del cambio de estado
   if "estado" in cambios:

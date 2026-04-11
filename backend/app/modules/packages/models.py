@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, Boolean, Text, ForeignKey, Enum as SQLEnum, TIMESTAMP
+from sqlalchemy import String, ForeignKey, Enum as SQLEnum, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -53,6 +53,7 @@ class Paquete(Base):
     ForeignKey("usuarios.id", ondelete="SET NULL"),
     nullable=True
   )
+  retirado_por_nombre: Mapped[str | None] = mapped_column(String(255), nullable=True)
   fecha_recepcion: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
   fecha_entrega: Mapped[datetime | None] = mapped_column(TIMESTAMP, nullable=True)
   estado: Mapped[EstadoPaquete] = mapped_column(

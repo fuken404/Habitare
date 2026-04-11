@@ -12,7 +12,8 @@ from app.modules.common_areas.schemas import (
   )
 from app.modules.users.models import TipoRol
 
-_ROLES_ADMIN = (TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
+_ROLES_ADMIN     = (TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
+_ROLES_RECEPCION = (TipoRol.RECEPCION,)
 
 # Mapa Python weekday() → DiaSemana
 _WEEKDAY_MAP = {
@@ -123,7 +124,7 @@ async def listar_reservas(
     db: AsyncSession,
   ) -> list[ReservaListResponse]:
   items = await repo.get_reservas(db, tenant_id, zona_id, estado, fecha)
-  return [ReservaListResponse.model_validate(r) for r in items]
+  return [ReservaListResponse.from_orm_with_residente(r) for r in items]
 
 async def obtener_reserva(
     reserva_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession
@@ -206,13 +207,20 @@ async def actualizar_reserva(
   if not reserva:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reserva no encontrada")
   cambios = data.model_dump(exclude_none=True)
-  es_admin = rol_usuario in _ROLES_ADMIN
+  es_admin     = rol_usuario in _ROLES_ADMIN
+  es_recepcion = rol_usuario in _ROLES_RECEPCION
   if "estado" in cambios:
     nuevo_estado = cambios["estado"]
-    # Transiciones permitidas según rol
     _TRANSICIONES_ADMIN = {
       EstadoReserva.PENDIENTE:   [EstadoReserva.CONFIRMADA, EstadoReserva.CANCELADA],
       EstadoReserva.CONFIRMADA:  [EstadoReserva.CANCELADA, EstadoReserva.COMPLETADA],
+      EstadoReserva.CANCELADA:   [],
+      EstadoReserva.COMPLETADA:  [],
+    }
+    # Recepción: solo consulta, no puede cambiar estado
+    _TRANSICIONES_RECEPCION = {
+      EstadoReserva.PENDIENTE:   [],
+      EstadoReserva.CONFIRMADA:  [],
       EstadoReserva.CANCELADA:   [],
       EstadoReserva.COMPLETADA:  [],
     }
@@ -222,15 +230,20 @@ async def actualizar_reserva(
       EstadoReserva.CANCELADA:   [],
       EstadoReserva.COMPLETADA:  [],
     }
-    transiciones = _TRANSICIONES_ADMIN if es_admin else _TRANSICIONES_RESIDENTE
+    if es_admin:
+      transiciones = _TRANSICIONES_ADMIN
+    elif es_recepcion:
+      transiciones = _TRANSICIONES_RECEPCION
+    else:
+      transiciones = _TRANSICIONES_RESIDENTE
     permitidos = transiciones.get(reserva.estado, [])
     if nuevo_estado not in permitidos:
       raise HTTPException(
         status_code=status.HTTP_409_CONFLICT,
         detail=f"Transición inválida: '{reserva.estado}' → '{nuevo_estado}'"
       )
-  # Residentes solo pueden cancelar su propia reserva
-  if not es_admin and reserva.usuario_id != usuario_id:
+  # Residentes solo pueden modificar su propia reserva; recepción y admin, cualquiera
+  if not es_admin and not es_recepcion and reserva.usuario_id != usuario_id:
     raise HTTPException(
       status_code=status.HTTP_403_FORBIDDEN,
       detail="Solo puedes modificar tus propias reservas"
@@ -243,6 +256,11 @@ async def cancelar_reserva(
     usuario_id: uuid.UUID, rol_usuario: TipoRol,
     db: AsyncSession,
   ) -> None:
-  """Shortcut de cancelación directa sin pasar body."""
+  """Shortcut de cancelación directa sin pasar body. Recepción no puede cancelar."""
+  if rol_usuario == TipoRol.RECEPCION:
+    raise HTTPException(
+      status_code=status.HTTP_403_FORBIDDEN,
+      detail="Recepción no tiene permiso para cancelar reservas"
+    )
   data = ReservaUpdate(estado=EstadoReserva.CANCELADA)
   await actualizar_reserva(reserva_id, tenant_id, usuario_id, rol_usuario, data, db)

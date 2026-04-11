@@ -21,7 +21,7 @@ class UserDetail {
   }
 }
 
-final userDetailProvider = FutureProvider<UserDetail>((ref) async {
+final userDetailProvider = FutureProvider.autoDispose<UserDetail>((ref) async {
   final response = await ApiClient.instance.get('/usuarios/me');
   return UserDetail.fromJson(response.data as Map<String, dynamic>);
 });

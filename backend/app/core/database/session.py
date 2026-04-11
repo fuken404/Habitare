@@ -20,7 +20,11 @@ def _get_engine(testing: bool = False) -> AsyncEngine:
   if testing:
     kwargs["poolclass"] = NullPool
   
-  return create_async_engine(settings.db_url, **kwargs)
+  return create_async_engine(
+    settings.db_url,
+    connect_args={"server_settings": {"timezone": "America/Bogota"}},
+    **kwargs,
+  )
 
 engine = _get_engine()
 

@@ -10,6 +10,24 @@ from app.modules.users.schemas import (
   CambiarPasswordRequest,
 )
 
+async def listar_residentes_unidad(
+    unidad_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession
+  ) -> list[UsuarioResponse]:
+  usuarios = await repo.get_residentes_by_unidad(db, unidad_id, tenant_id)
+  return [UsuarioResponse.model_validate(u) for u in usuarios]
+
+async def listar_residentes_inactivos_tenant(tenant_id: uuid.UUID, db: AsyncSession) -> list:
+  return await repo.get_residentes_inactivos_tenant(db, tenant_id)
+
+async def listar_staff_tenant(tenant_id: uuid.UUID, db: AsyncSession) -> list:
+  return await repo.get_staff_tenant(db, tenant_id)
+
+async def listar_staff_inactivos_tenant(tenant_id: uuid.UUID, db: AsyncSession) -> list:
+  return await repo.get_staff_inactivos_tenant(db, tenant_id)
+
+async def listar_residentes_tenant_full(tenant_id: uuid.UUID, db: AsyncSession) -> list:
+  return await repo.get_residentes_tenant(db, tenant_id)
+
 async def listar_usuarios_tenant(tenant_id: uuid.UUID, db: AsyncSession) -> list[UsuarioResponse]:
   usuarios = await repo.get_usuarios_by_tenant(db, tenant_id)
   return [UsuarioResponse.model_validate(u) for u in usuarios]
@@ -33,7 +51,7 @@ async def actualizar_usuario(
   usuario = await repo.get_usuario_by_id(db, usuario_id)
   if not usuario:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
-  usuario = await repo.update_usuario(db, usuario, data.model_dump(exclude_none=True))
+  usuario = await repo.update_usuario(db, usuario, data.model_dump(exclude_unset=True))
   return UsuarioResponse.model_validate(usuario)
 
 

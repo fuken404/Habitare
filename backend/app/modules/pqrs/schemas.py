@@ -64,11 +64,19 @@ class PQRSUpdate(BaseModel):
 class MensajePQRSResponse(BaseModel):
   id: uuid.UUID
   autor_id: uuid.UUID
+  nombre_autor: str | None = None
   contenido: str
   is_interno: bool
   created_at: datetime
 
   model_config = {"from_attributes": True}
+
+  @classmethod
+  def from_orm_mensaje(cls, m: object) -> "MensajePQRSResponse":
+    obj = cls.model_validate(m)
+    if hasattr(m, "autor") and m.autor:  # type: ignore[union-attr]
+      obj.nombre_autor = f"{m.autor.nombre} {m.autor.apellido or ''}".strip()  # type: ignore[union-attr]
+    return obj
 
 class PQRSResponse(BaseModel):
   id: uuid.UUID
@@ -91,18 +99,39 @@ class PQRSResponse(BaseModel):
 
   model_config = {"from_attributes": True}
 
+  @classmethod
+  def from_orm_pqrs(cls, pqrs: object) -> "PQRSResponse":
+    obj = cls.model_validate(pqrs)
+    enriched = [MensajePQRSResponse.from_orm_mensaje(m) for m in pqrs.mensajes]  # type: ignore[union-attr]
+    return obj.model_copy(update={"mensajes": enriched})
+
 class PQRSListResponse(BaseModel):
   id: uuid.UUID
+  numero_radicado: str | None
   categoria_id: uuid.UUID | None
   tipo: TipoPQRS | None
   asunto: str
   estado: EstadoPQRS
   prioridad: PrioridadPQRS
   radicado_por: uuid.UUID
+  nombre_radicador: str | None = None
   unidad_id: uuid.UUID
+  numero_unidad: str | None = None
+  nombre_torre: str | None = None
   created_at: datetime
 
   model_config = {"from_attributes": True}
+
+  @classmethod
+  def from_orm_pqrs(cls, p: object) -> "PQRSListResponse":
+    obj = cls.model_validate(p)
+    if hasattr(p, "usuario") and p.usuario:  # type: ignore[union-attr]
+      obj.nombre_radicador = f"{p.usuario.nombre} {p.usuario.apellido or ''}".strip()  # type: ignore[union-attr]
+    if hasattr(p, "unidad") and p.unidad:  # type: ignore[union-attr]
+      obj.numero_unidad = p.unidad.numero  # type: ignore[union-attr]
+      if p.unidad.torre:  # type: ignore[union-attr]
+        obj.nombre_torre = p.unidad.torre.nombre  # type: ignore[union-attr]
+    return obj
 
 # ======================================
 #           MENSAJE PQRS

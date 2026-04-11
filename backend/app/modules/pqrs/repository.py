@@ -5,6 +5,8 @@ from sqlalchemy import select, func, extract
 from sqlalchemy.orm import selectinload
 
 from app.modules.pqrs.models import CategoriaPQRS, PQRS, MensajePQRS, AdjuntoPQRS, EstadoPQRS
+from app.modules.tenants.models import Unidad, Torre
+from app.modules.users.models import Usuario
 
 # ======================================
 #          CATEGORÍA PQRS
@@ -39,7 +41,7 @@ async def update_categoria(
   ) -> CategoriaPQRS:
   for key, value in data.items():
     setattr(categoria, key, value)
-  categoria.updated_at = datetime.utcnow()
+  categoria.updated_at = datetime.now()
   await db.flush()
   await db.refresh(categoria)
   return categoria
@@ -57,6 +59,10 @@ async def get_pqrs_list(
   query = (
     select(PQRS)
     .where(PQRS.tenant_id == tenant_id)
+    .options(
+      selectinload(PQRS.usuario),
+      selectinload(PQRS.unidad).selectinload(Unidad.torre),
+    )
     .order_by(PQRS.created_at.desc())
   )
   if estado:
@@ -73,7 +79,10 @@ async def get_pqrs_by_id(
   result = await db.execute(
     select(PQRS)
     .where(PQRS.id == pqrs_id, PQRS.tenant_id == tenant_id)
-    .options(selectinload(PQRS.mensajes), selectinload(PQRS.adjuntos))
+    .options(
+      selectinload(PQRS.mensajes).selectinload(MensajePQRS.autor),
+      selectinload(PQRS.adjuntos),
+    )
   )
   pqrs = result.scalar_one_or_none()
   # Filtrar mensajes internos si el solicitante es residente
@@ -100,7 +109,7 @@ async def create_pqrs(db: AsyncSession, data: dict) -> PQRS:
 async def update_pqrs(db: AsyncSession, pqrs: PQRS, data: dict) -> PQRS:
   for key, value in data.items():
     setattr(pqrs, key, value)
-  pqrs.updated_at = datetime.utcnow()
+  pqrs.updated_at = datetime.now()
   await db.flush()
   await db.refresh(pqrs)
   return pqrs

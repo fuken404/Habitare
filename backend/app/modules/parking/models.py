@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, Date, Boolean, Integer, ForeignKey, Enum as SQLEnum, TIMESTAMP
+from sqlalchemy import String, Date, Boolean, Integer, ForeignKey, Enum as SQLEnum, TIMESTAMP, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -50,7 +50,6 @@ class ParqueaderoResidente(Base):
     SQLEnum(TipoParqueadero, name="tipo_parqueadero_enum"),
     nullable=False
   )
-  nivel: Mapped[int | None] = mapped_column(Integer, nullable=True)
   created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)
   updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)
   
@@ -140,6 +139,7 @@ class SorteoRotacion(Base):
     nullable=False
   )
   fecha_sorteo: Mapped[datetime] = mapped_column(Date, nullable=False)
+  fecha_limite_inscripcion: Mapped[datetime | None] = mapped_column(Date, nullable=True)
   estado: Mapped[EstadoSorteo] = mapped_column(
     SQLEnum(EstadoSorteo, name="estado_sorteo_enum"),
     server_default="PROGRAMADO",

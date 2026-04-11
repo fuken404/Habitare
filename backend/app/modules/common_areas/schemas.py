@@ -114,5 +114,20 @@ class ReservaListResponse(BaseModel):
   hora_inicio: time
   hora_fin: time
   estado: EstadoReserva
-  
+  nombre_residente: str | None = None
+  numero_unidad: str | None = None
+  nombre_torre: str | None = None
+
   model_config = {"from_attributes": True}
+
+  @classmethod
+  def from_orm_with_residente(cls, reserva) -> "ReservaListResponse":
+    obj = cls.model_validate(reserva)
+    if reserva.usuario:
+      apellido = reserva.usuario.apellido or ""
+      obj.nombre_residente = f"{reserva.usuario.nombre} {apellido}".strip()
+    if reserva.unidad:
+      obj.numero_unidad = reserva.unidad.numero
+      if reserva.unidad.torre:
+        obj.nombre_torre = reserva.unidad.torre.nombre
+    return obj

@@ -37,6 +37,7 @@ async def create_visitante(db: AsyncSession, data: dict) -> Visitante:
 async def get_autorizacion_by_id(
     db: AsyncSession, autorizacion_id: uuid.UUID, tenant_id: uuid.UUID
   ) -> AutorizacionVisita | None:
+  from app.modules.tenants.models import Unidad
   result = await db.execute(
     select(AutorizacionVisita)
     .where(
@@ -46,6 +47,8 @@ async def get_autorizacion_by_id(
     .options(
       selectinload(AutorizacionVisita.visitante),
       selectinload(AutorizacionVisita.vehiculos),
+      selectinload(AutorizacionVisita.usuario),
+      selectinload(AutorizacionVisita.unidad).selectinload(Unidad.torre),
     )
   )
   return result.scalar_one_or_none()
@@ -54,13 +57,15 @@ async def get_autorizaciones_by_tenant(
     db: AsyncSession, tenant_id: uuid.UUID, fecha: date | None = None,
     unidad_id: uuid.UUID | None = None
   ) -> list[AutorizacionVisita]:
+  from app.modules.tenants.models import Unidad
   query = (
     select(AutorizacionVisita)
     .where(AutorizacionVisita.tenant_id == tenant_id)
     .options(
       selectinload(AutorizacionVisita.visitante),
       selectinload(AutorizacionVisita.vehiculos),
-      selectinload(AutorizacionVisita.unidad),
+      selectinload(AutorizacionVisita.usuario),
+      selectinload(AutorizacionVisita.unidad).selectinload(Unidad.torre),
     )
     .order_by(AutorizacionVisita.fecha_visita.desc())
   )
@@ -102,7 +107,7 @@ async def update_autorizacion(
   ) -> AutorizacionVisita:
   for key, value in data.items():
     setattr(autorizacion, key, value)
-  autorizacion.updated_at = datetime.utcnow()
+  autorizacion.updated_at = datetime.now()
   await db.flush()
   await db.refresh(autorizacion)
   return autorizacion

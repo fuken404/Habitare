@@ -40,6 +40,7 @@ class Tenant(Base):
   telefono: Mapped[str | None] = mapped_column(String(50), nullable=True)
   email: Mapped[str | None] = mapped_column(String(255), nullable=True)
   is_activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+  requiere_sorteo_parqueadero: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
   created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)
   updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default="NOW()", nullable=False)
   

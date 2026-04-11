@@ -8,8 +8,8 @@ from app.modules.users.models import TipoRol
 from app.modules.auth.schemas import MeResponse
 from app.modules.users.schemas import (
   UsuarioCreate, UsuarioUpdate,
-  UsuarioResponse, AsignarUsuarioTenant, MembresiaResponse,
-  CambiarPasswordRequest,
+  UsuarioResponse, ResidenteListResponse, StaffListResponse,
+  AsignarUsuarioTenant, MembresiaResponse, CambiarPasswordRequest,
 )
 from app.modules.users import service as users_service
 
@@ -30,6 +30,38 @@ async def crear_usuario(
   db: AsyncSession = Depends(get_db),
   ):
   return await users_service.crear_usuario(body, db)
+
+@router.get("/staff", response_model=list[StaffListResponse])
+async def listar_staff(
+  tenant_id: uuid.UUID = Depends(get_tenant_id),
+  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  db: AsyncSession = Depends(get_db),
+  ):
+  return await users_service.listar_staff_tenant(tenant_id, db)
+
+@router.get("/staff/inactivos", response_model=list[StaffListResponse])
+async def listar_staff_inactivos(
+  tenant_id: uuid.UUID = Depends(get_tenant_id),
+  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  db: AsyncSession = Depends(get_db),
+  ):
+  return await users_service.listar_staff_inactivos_tenant(tenant_id, db)
+
+@router.get("/residentes", response_model=list[ResidenteListResponse])
+async def listar_residentes(
+  tenant_id: uuid.UUID = Depends(get_tenant_id),
+  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  db: AsyncSession = Depends(get_db),
+  ):
+  return await users_service.listar_residentes_tenant_full(tenant_id, db)
+
+@router.get("/residentes/inactivos", response_model=list[ResidenteListResponse])
+async def listar_residentes_inactivos(
+  tenant_id: uuid.UUID = Depends(get_tenant_id),
+  _: MeResponse = Depends(require_roles(TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)),
+  db: AsyncSession = Depends(get_db),
+  ):
+  return await users_service.listar_residentes_inactivos_tenant(tenant_id, db)
 
 @router.get("/me", response_model=UsuarioResponse)
 async def mi_perfil(

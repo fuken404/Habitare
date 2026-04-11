@@ -3,7 +3,7 @@ import 'package:habitare/core/network/api_client.dart';
 import 'package:habitare/features/auth/presentation/providers/auth_provider.dart';
 import 'package:habitare/features/packages/domain/package_model.dart';
 
-final packagesProvider = FutureProvider<List<PackageModel>>((ref) async {
+final packagesProvider = FutureProvider.autoDispose<List<PackageModel>>((ref) async {
   final user = ref.watch(authProvider).user;
   final queryParams = user?.unidadId != null
       ? '?unidad_id=${user!.unidadId}'

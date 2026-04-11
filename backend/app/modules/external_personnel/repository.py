@@ -54,7 +54,7 @@ async def update_ingreso(
   ) -> IngresoExterno:
     for key, value in data.items():
       setattr(ingreso, key, value)
-    ingreso.updated_at = datetime.utcnow()
+    ingreso.updated_at = datetime.now()
     await db.flush()
     await db.refresh(ingreso)
     return ingreso
