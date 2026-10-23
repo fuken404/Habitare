@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import { visitorsApi, type Autorizacion, type Ingreso } from '../api/visitorsApi';
 import { IngresoVehiculoDialog } from '../components/IngresoVehiculoDialog';
 import { ConfirmIngresoDialog } from '../components/ConfirmIngresoDialog';
+import { UserDetailDrawer } from '@/shared/components/UserDetailDrawer';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const today = dayjs().format('YYYY-MM-DD');
@@ -90,6 +91,7 @@ export function VisitorsPage() {
   const [pageHist, setPageHist]         = useState(0);
   const [pendingId, setPendingId]           = useState<string | null>(null);
   const [confirmAut, setConfirmAut]         = useState<Autorizacion | null>(null);
+  const [userDrawer, setUserDrawer]         = useState<{ userId: string; unidadLabel: string | null } | null>(null);
 
   const [autorizacionesQ, ingresosQ, parkingQ] = useQueries({
     queries: [
@@ -210,8 +212,18 @@ export function VisitorsPage() {
                     <TableCell><VisitanteCell v={aut.visitante} /></TableCell>
                     <TableCell>{aut.visitante.tipo_documento}. {aut.visitante.n_documento}</TableCell>
                     <TableCell>
-                      {[aut.nombre_autorizado_por, aut.numero_unidad, aut.nombre_torre]
-                        .filter(Boolean).join(' – ') || '—'}
+                      {aut.nombre_autorizado_por ? (
+                        <Button size="small" variant="text"
+                          onClick={() => {
+                            const label = [aut.numero_unidad && `Apto ${aut.numero_unidad}`, aut.nombre_torre]
+                              .filter(Boolean).join(' · ') || null;
+                            setUserDrawer({ userId: aut.autorizado_por, unidadLabel: label });
+                          }}
+                          sx={{ p: 0, minWidth: 0, fontSize: 13.5, color: '#64748B', textTransform: 'none',
+                            '&:hover': { color: '#2563EB', bgcolor: 'transparent' } }}>
+                          {[aut.nombre_autorizado_por, aut.numero_unidad, aut.nombre_torre].filter(Boolean).join(' – ')}
+                        </Button>
+                      ) : '—'}
                     </TableCell>
                     <TableCell>{dayjs(aut.fecha_visita).format('DD/MM/YYYY')}</TableCell>
                     <TableCell>
@@ -355,6 +367,29 @@ export function VisitorsPage() {
           }}
         />
       )}
+
+      {/* ── Drawer detalle de residente ── */}
+      <UserDetailDrawer
+        userId={userDrawer?.userId ?? null}
+        unidadLabel={userDrawer?.unidadLabel}
+        onClose={() => setUserDrawer(null)}
+      >
+        {userDrawer && autorizaciones
+          .filter(a => a.autorizado_por === userDrawer.userId)
+          .slice(0, 10)
+          .map(a => (
+            <Box key={a.id} sx={{ p: 1.5, borderRadius: 1.5, border: '1px solid #E2E8F0',
+              bgcolor: 'white' }}>
+              <Typography fontSize={13} fontWeight={600} color="#0F172A">
+                {nombreCompleto(a.visitante)}
+              </Typography>
+              <Typography fontSize={11.5} color="#94A3B8" mt={0.25}>
+                {dayjs(a.fecha_visita).format('DD/MM/YYYY')}
+                {a.estado !== 'pendiente' && ` · ${a.estado}`}
+              </Typography>
+            </Box>
+          ))}
+      </UserDetailDrawer>
 
     </Box>
   );

@@ -14,6 +14,7 @@ String _tipoLabel(String tipo) {
     'QUEJA': 'Queja',       'queja': 'Queja',
     'RECLAMO': 'Reclamo',   'reclamo': 'Reclamo',
     'SUGERENCIA': 'Sugerencia', 'sugerencia': 'Sugerencia',
+    'INCIDENTE': 'Incidente', 'incidente': 'Incidente',
   };
   return map[tipo] ?? tipo;
 }

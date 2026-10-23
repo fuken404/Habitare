@@ -45,11 +45,11 @@ export interface AdminReserva {
 
 export interface AdminIncidente {
   id: string;
-  titulo: string;
-  tipo_nombre: string;
-  estado: 'reportado' | 'en_atencion' | 'resuelto' | 'cerrado';
-  severidad: 'baja' | 'media' | 'alta' | 'critica';
-  nombre_reportado_por: string | null;
+  asunto: string;
+  tipo_incidente_id: string | null;
+  estado: 'abierta' | 'en_proceso' | 'resuelta' | 'cerrada' | 'rechazada';
+  severidad: 'baja' | 'media' | 'alta' | 'critica' | null;
+  nombre_radicador: string | null;
   created_at: string;
 }
 
@@ -75,7 +75,7 @@ export const adminDashboardApi = {
     apiClient.get<AdminReserva[]>('/common-areas/reservas', { params: { estado: 'pendiente' } }).then(r => r.data),
 
   getIncidentes: (): Promise<AdminIncidente[]> =>
-    apiClient.get<AdminIncidente[]>('/incidents').then(r => r.data),
+    apiClient.get<AdminIncidente[]>('/pqrs', { params: { tipo: 'incidente' } }).then(r => r.data),
 
   getZonas: (): Promise<AdminZona[]> =>
     apiClient.get<AdminZona[]>('/common-areas').then(r => r.data),

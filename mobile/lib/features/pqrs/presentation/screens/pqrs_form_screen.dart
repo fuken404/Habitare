@@ -16,6 +16,7 @@ const _tiposMap = {
   'Queja': 'queja',
   'Reclamo': 'reclamo',
   'Sugerencia': 'sugerencia',
+  'Incidente': 'incidente',
 };
 
 class PqrsFormScreen extends ConsumerStatefulWidget {
@@ -29,7 +30,10 @@ class _PqrsFormScreenState extends ConsumerState<PqrsFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _descripcionCtrl = TextEditingController();
   final _asuntoCtrl = TextEditingController();
+  final _ubicacionCtrl = TextEditingController();
   String _tipoPQRS = 'Petición';
+  String? _tipoIncidenteId;
+  bool _isUrgente = false;
   bool _isLoading = false;
   String? _errorMsg;
   final List<XFile> _adjuntos = [];
@@ -39,6 +43,7 @@ class _PqrsFormScreenState extends ConsumerState<PqrsFormScreen> {
   void dispose() {
     _descripcionCtrl.dispose();
     _asuntoCtrl.dispose();
+    _ubicacionCtrl.dispose();
     super.dispose();
   }
 
@@ -86,7 +91,8 @@ class _PqrsFormScreenState extends ConsumerState<PqrsFormScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final unidadId = ref.read(authProvider).user?.unidadId;
-    if (unidadId == null) {
+    final esIncidente = _tiposMap[_tipoPQRS] == 'incidente';
+    if (!esIncidente && unidadId == null) {
       setState(() => _errorMsg = 'No se encontró la unidad del usuario');
       return;
     }
@@ -108,7 +114,10 @@ class _PqrsFormScreenState extends ConsumerState<PqrsFormScreen> {
         'tipo': _tiposMap[_tipoPQRS],
         'asunto': _asuntoCtrl.text.trim(),
         'descripcion': _descripcionCtrl.text.trim(),
-        'unidad_id': unidadId,
+        if (!esIncidente && unidadId != null) 'unidad_id': unidadId,
+        if (esIncidente && _tipoIncidenteId != null) 'tipo_incidente_id': _tipoIncidenteId,
+        if (esIncidente && _ubicacionCtrl.text.trim().isNotEmpty) 'ubicacion': _ubicacionCtrl.text.trim(),
+        if (esIncidente) 'severidad': _isUrgente ? 'critica' : 'media',
         'adjuntos': adjuntosData,
       });
 
@@ -146,33 +155,31 @@ class _PqrsFormScreenState extends ConsumerState<PqrsFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Tipo de PQRS', style: AppTextStyles.smallSemibold),
+              Text('Tipo', style: AppTextStyles.smallSemibold),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: _tiposMap.keys.map((t) {
                   final isSelected = _tipoPQRS == t;
+                  final isIncidente = t == 'Incidente';
+                  final selectedColor = isIncidente ? AppColors.dangerText : AppColors.primary;
                   return GestureDetector(
-                    onTap: () => setState(() => _tipoPQRS = t),
+                    onTap: () => setState(() { _tipoPQRS = t; _tipoIncidenteId = null; }),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : AppColors.white,
+                        color: isSelected ? selectedColor : AppColors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.gray200,
+                          color: isSelected ? selectedColor : AppColors.gray200,
                         ),
                       ),
                       child: Text(
                         t,
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: isSelected
-                              ? AppColors.white
-                              : AppColors.gray900,
+                          color: isSelected ? AppColors.white : AppColors.gray900,
                         ),
                       ),
                     ),
@@ -180,6 +187,74 @@ class _PqrsFormScreenState extends ConsumerState<PqrsFormScreen> {
                 }).toList(),
               ),
               const SizedBox(height: 20),
+              // ── Campos específicos de incidente ──────────────────────────────
+              if (_tiposMap[_tipoPQRS] == 'incidente') ...[
+                ref.watch(tiposIncidentePqrsProvider).when(
+                  loading: () => const SizedBox(height: 44, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
+                  error: (_, __) => Text('No se pudieron cargar tipos', style: AppTextStyles.small.copyWith(color: AppColors.dangerText)),
+                  data: (tipos) => tipos.isEmpty ? const SizedBox() : Container(
+                    height: 44,
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.gray300),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _tipoIncidenteId,
+                        hint: Text('Tipo de novedad (opcional)', style: AppTextStyles.placeholder),
+                        isExpanded: true,
+                        style: AppTextStyles.bodyRegular,
+                        items: tipos.map((t) => DropdownMenuItem(value: t.id, child: Text(t.nombre))).toList(),
+                        onChanged: (v) => setState(() => _tipoIncidenteId = v),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _ubicacionCtrl,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: AppTextStyles.bodyRegular,
+                  decoration: const InputDecoration(
+                    hintText: 'Ej: Pasillo 3er piso, zona de parqueadero...',
+                    prefixIcon: Icon(Icons.location_on_outlined, size: 20, color: AppColors.gray500),
+                    labelText: 'Ubicación (opcional)',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _isUrgente ? AppColors.dangerText.withValues(alpha: 0.4) : AppColors.gray200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.priority_high_rounded, size: 20, color: _isUrgente ? AppColors.dangerText : AppColors.gray400),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Urgente', style: AppTextStyles.bodyMedium),
+                            Text('Requiere atención inmediata', style: AppTextStyles.small.copyWith(color: AppColors.gray500)),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: _isUrgente,
+                        onChanged: (v) => setState(() => _isUrgente = v),
+                        activeThumbColor: AppColors.dangerText,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
 
               Text('Asunto', style: AppTextStyles.smallSemibold),
               const SizedBox(height: 8),
@@ -309,7 +384,9 @@ class _PqrsFormScreenState extends ConsumerState<PqrsFormScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Tu PQRS será radicada con número de seguimiento. Recibirás respuesta en un plazo máximo de 15 días hábiles.',
+                        _tiposMap[_tipoPQRS] == 'incidente'
+                            ? 'Tu reporte será enviado al equipo de seguridad y administración para atención inmediata.'
+                            : 'Tu PQRS será radicada con número de seguimiento. Recibirás respuesta en un plazo máximo de 15 días hábiles.',
                         style: AppTextStyles.small
                             .copyWith(color: AppColors.infoText),
                       ),
@@ -345,7 +422,7 @@ class _PqrsFormScreenState extends ConsumerState<PqrsFormScreen> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: AppColors.white),
                         )
-                      : const Text('Radicar PQRS'),
+                      : Text(_tiposMap[_tipoPQRS] == 'incidente' ? 'Enviar Reporte' : 'Radicar PQRS'),
                 ),
               ),
             ],

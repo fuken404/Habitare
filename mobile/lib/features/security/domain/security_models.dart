@@ -116,9 +116,9 @@ class IncidentApiModel {
   factory IncidentApiModel.fromJson(Map<String, dynamic> json) {
     return IncidentApiModel(
       id: json['id'] as String,
-      tipoId: json['tipo_id'] as String,
-      titulo: json['titulo'] as String? ?? '',
-      estado: json['estado'] as String? ?? 'reportado',
+      tipoId: json['tipo_incidente_id'] as String? ?? json['tipo_id'] as String? ?? '',
+      titulo: json['asunto'] as String? ?? json['titulo'] as String? ?? '',
+      estado: json['estado'] as String? ?? 'abierta',
       severidad: json['severidad'] as String? ?? 'media',
       createdAt: json['created_at'] as String? ?? '',
     );

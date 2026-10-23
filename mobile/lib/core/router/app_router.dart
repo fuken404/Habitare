@@ -30,6 +30,8 @@ import 'package:habitare/features/security/presentation/screens/security_reporte
 import 'package:habitare/features/security/presentation/screens/security_qr_scanner_screen.dart';
 import 'package:habitare/features/security/presentation/screens/security_visitor_detail_screen.dart';
 import 'package:habitare/features/security/presentation/screens/security_visitors_screen.dart';
+import 'package:habitare/features/external_personnel/presentation/screens/external_personnel_screen.dart';
+import 'package:habitare/features/appointments/presentation/screens/appointments_screen.dart';
 import 'package:habitare/features/visitors/domain/visitor_model.dart';
 import 'package:habitare/features/visitors/presentation/screens/create_visit_screen.dart';
 import 'package:habitare/features/visitors/presentation/screens/visitor_detail_screen.dart';
@@ -269,6 +271,20 @@ GoRouter buildRouter(Ref ref) {
         name: 'incident-success',
         builder: (c, s) =>
             IncidentSuccessScreen(numeroRadicado: s.extra as String?),
+      ),
+
+      // ── Servicios Externos ───────────────────────────────────────────────
+      GoRoute(
+        path: '/external-services',
+        name: 'external-services',
+        builder: (c, s) => const ExternalPersonnelScreen(),
+      ),
+
+      // ── Citas con Administración ─────────────────────────────────────────
+      GoRoute(
+        path: '/appointments',
+        name: 'appointments',
+        builder: (c, s) => const AppointmentsScreen(),
       ),
 
       // ── Paquetes ──────────────────────────────────────────────────────────

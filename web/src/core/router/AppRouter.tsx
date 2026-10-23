@@ -17,7 +17,6 @@ import { ParkingPage } from '@/features/parking/pages/ParkingPage';
 import { ResidentsPage } from '@/features/residents/pages/ResidentsPage';
 import { UnitsPage } from '@/features/units/pages/UnitsPage';
 import { UsersPage } from '@/features/users/pages/UsersPage';
-import IncidentsPage from '@/features/incidents/pages/IncidentsPage';
 import { CommonAreasPage } from '@/features/common-areas/pages/CommonAreasPage';
 import { SecurityPage } from '@/features/security/pages/SecurityPage';
 import { BillingPage } from '@/features/billing/pages/BillingPage';
@@ -26,6 +25,12 @@ import { PqrsPage } from '@/features/pqrs/pages/PqrsPage';
 
 // Superadmin
 import { TenantsPage } from '@/features/superadmin/pages/TenantsPage';
+
+// Trasteos
+import { TrasteosPage } from '@/features/trasteos/pages/TrasteosPage';
+
+// Citas Admin
+import { AppointmentsPage } from '@/features/appointments/pages/AppointmentsPage';
 
 // Profile
 import { ProfilePage } from '@/features/profile/pages/ProfilePage';
@@ -59,7 +64,8 @@ export function AppRouter() {
           <Route path="parqueadero" element={<ParkingPage />} />
           <Route path="zonas-comunes" element={<CommonAreasPage />} />
           <Route path="reportes" element={<ReportsPage />} />
-          <Route path="ingresos-salidas" element={<SecurityPage />} />
+          <Route path="servicios-externos" element={<SecurityPage />} />
+          <Route path="trasteos" element={<TrasteosPage />} />
           <Route path="perfil" element={<ProfilePage />} />
         </Route>
 
@@ -77,12 +83,14 @@ export function AppRouter() {
           <Route path="residentes" element={<ResidentsPage />} />
           <Route path="unidades" element={<UnitsPage />} />
           <Route path="usuarios" element={<UsersPage />} />
-          <Route path="incidentes" element={<IncidentsPage />} />
           <Route path="zonas-comunes" element={<CommonAreasPage />} />
           <Route path="parqueaderos" element={<ParkingPage />} />
           <Route path="facturacion" element={<BillingPage />} />
           <Route path="comunicaciones" element={<CommunicationsPage />} />
           <Route path="pqrs" element={<PqrsPage />} />
+          <Route path="servicios-externos" element={<SecurityPage />} />
+          <Route path="trasteos" element={<TrasteosPage />} />
+          <Route path="citas" element={<AppointmentsPage />} />
           <Route path="perfil" element={<ProfilePage />} />
         </Route>
 

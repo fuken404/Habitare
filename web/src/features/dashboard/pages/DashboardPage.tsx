@@ -21,8 +21,7 @@ import { useAuthStore } from '@/core/auth/authStore';
 import { dashboardApi } from '../api/dashboardApi';
 import { adminDashboardApi } from '../api/adminDashboardApi';
 import { CrearComunicadoDialog } from '@/features/communications/pages/CommunicationsPage';
-import { CrearIncidenteDialog } from '@/features/incidents/pages/IncidentsPage';
-import { incidentsApi } from '@/features/incidents/api/incidentsApi';
+import { pqrsApi } from '@/features/pqrs/api/pqrsApi';
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 interface StatCardProps {
@@ -357,10 +356,11 @@ const TH_SX = {
 const TD_SX = { py: 1.5, px: 3, fontSize: 13.5, borderColor: '#F1F5F9', color: '#64748B' };
 
 const ESTADO_INCIDENTE: Record<string, { label: string; color: string; bg: string }> = {
-  reportado:   { label: 'Reportado',   color: '#2563EB', bg: '#DBEAFE' },
-  en_atencion: { label: 'En Atención', color: '#D97706', bg: '#FEF3C7' },
-  resuelto:    { label: 'Resuelto',    color: '#059669', bg: '#D1FAE5' },
-  cerrado:     { label: 'Cerrado',     color: '#64748B', bg: '#F1F5F9' },
+  abierta:    { label: 'Abierta',     color: '#2563EB', bg: '#DBEAFE' },
+  en_proceso: { label: 'En Atención', color: '#D97706', bg: '#FEF3C7' },
+  resuelta:   { label: 'Resuelta',    color: '#059669', bg: '#D1FAE5' },
+  cerrada:    { label: 'Cerrada',     color: '#64748B', bg: '#F1F5F9' },
+  rechazada:  { label: 'Rechazada',   color: '#DC2626', bg: '#FEE2E2' },
 };
 const SEVERIDAD_INCIDENTE: Record<string, { label: string; color: string; bg: string }> = {
   baja:    { label: 'Baja',    color: '#059669', bg: '#D1FAE5' },
@@ -418,7 +418,7 @@ function AdminDashboard() {
       { queryKey: ['adm-reservas'],       queryFn: adminDashboardApi.getReservasPendientes, refetchInterval: 30_000 },
       { queryKey: ['adm-incidentes'],     queryFn: adminDashboardApi.getIncidentes,         refetchInterval: 30_000 },
       { queryKey: ['adm-zonas'],          queryFn: adminDashboardApi.getZonas,              staleTime: 5 * 60_000 },
-      { queryKey: ['tipos-incidente'],    queryFn: incidentsApi.getTipos,                   staleTime: 5 * 60_000 },
+      { queryKey: ['pqrs-tipos-incidente'], queryFn: pqrsApi.getTiposIncidente,               staleTime: 5 * 60_000 },
     ],
   });
 
@@ -433,7 +433,7 @@ function AdminDashboard() {
 
   const pqrsAbiertos       = pqrs.filter(p => p.estado === 'abierta' || p.estado === 'en_proceso');
   const pqrsSoloAbiertos   = pqrs.filter(p => p.estado === 'abierta');
-  const incidentesAbiertos = incidentes.filter(i => i.estado === 'reportado' || i.estado === 'en_atencion');
+  const incidentesAbiertos = incidentes.filter(i => i.estado === 'abierta' || i.estado === 'en_proceso');
   const carteraTotal       = facturas.reduce((s, f) => s + Number(f.monto_total), 0);
   const zonaMap            = new Map(zonas.map(z => [z.id, z.nombre]));
   const reservaMasAntigua  = reservas.length > 0
@@ -565,10 +565,14 @@ function AdminDashboard() {
                     {incidentesAbiertos.map(i => (
                       <TableRow key={i.id} sx={{ '&:hover': { bgcolor: '#F8FAFC' }, '& td': TD_SX, '&:last-child td': { border: 0 } }}>
                         <TableCell>
-                          <Typography fontSize={13.5} fontWeight={600} color="#0F172A">{i.titulo}</Typography>
+                          <Typography fontSize={13.5} fontWeight={600} color="#0F172A">{i.asunto}</Typography>
                         </TableCell>
-                        <TableCell>{i.tipo_nombre}</TableCell>
-                        <TableCell><StatusChip map={SEVERIDAD_INCIDENTE} value={i.severidad} /></TableCell>
+                        <TableCell>
+                          {i.tipo_incidente_id
+                            ? (tiposInc.find(t => t.id === i.tipo_incidente_id)?.nombre ?? '—')
+                            : '—'}
+                        </TableCell>
+                        <TableCell>{i.severidad ? <StatusChip map={SEVERIDAD_INCIDENTE} value={i.severidad} /> : '—'}</TableCell>
                         <TableCell><StatusChip map={ESTADO_INCIDENTE}    value={i.estado}    /></TableCell>
                         <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>
                           {dayjs(i.created_at).format('DD/MM/YY')}
@@ -579,7 +583,7 @@ function AdminDashboard() {
                 </Table>
                 <Box sx={{ px: 3, py: 1.5, borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end' }}>
                   <Link component="button" underline="none" color="#2563EB"
-                    onClick={() => navigate('/admin/incidentes')}
+                    onClick={() => navigate('/admin/pqrs')}
                     sx={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5, '&:hover': { color: '#1D4ED8' } }}>
                     Ver todos <ArrowForward sx={{ fontSize: 13 }} />
                   </Link>
@@ -695,7 +699,7 @@ function AdminDashboard() {
     </Grid>
 
     <CrearComunicadoDialog open={comunicadoOpen} onClose={() => setComunicadoOpen(false)} />
-    <CrearIncidenteDialog open={incidenteOpen} onClose={() => setIncidenteOpen(false)} tipos={tiposInc} />
+    <NewReportDialog open={incidenteOpen} tipos={tiposInc} onClose={() => setIncidenteOpen(false)} onCreated={() => { setIncidenteOpen(false); qc.invalidateQueries({ queryKey: ['adm-incidentes'] }); }} />
 
     <Dialog open={sinReservasOpen} onClose={() => setSinReservasOpen(false)} PaperProps={{ sx: { borderRadius: 2, p: 1, maxWidth: 360 } }}>
       <DialogContent sx={{ textAlign: 'center', pt: 3, pb: 1 }}>

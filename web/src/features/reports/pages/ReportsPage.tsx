@@ -15,10 +15,11 @@ import { SearchBar } from '@/shared/components/SearchBar';
 
 // ─── Tokens de estado ─────────────────────────────────────────────────────────
 const ESTADO_CONFIG: Record<EstadoIncidente, { label: string; bg: string; color: string }> = {
-  reportado:   { label: 'Reportado',   bg: '#FEF9C3', color: '#854D0E' },
-  en_atencion: { label: 'En atención', bg: '#FEF3C7', color: '#92400E' },
-  resuelto:    { label: 'Resuelto',    bg: '#DCFCE7', color: '#15803D' },
-  cerrado:     { label: 'Cerrado',     bg: '#F1F5F9', color: '#475569' },
+  abierta:    { label: 'Abierta',     bg: '#FEF9C3', color: '#854D0E' },
+  en_proceso: { label: 'En atención', bg: '#FEF3C7', color: '#92400E' },
+  resuelta:   { label: 'Resuelta',    bg: '#DCFCE7', color: '#15803D' },
+  cerrada:    { label: 'Cerrada',     bg: '#F1F5F9', color: '#475569' },
+  rechazada:  { label: 'Rechazada',   bg: '#FEF2F2', color: '#B91C1C' },
 };
 
 // ─── Tokens de severidad ──────────────────────────────────────────────────────
@@ -92,7 +93,7 @@ export function ReportsPage() {
   const q = search.toLowerCase();
   const incidentes = allIncidentes.filter((i) => {
     if (severidadFiltro && i.severidad !== severidadFiltro) return false;
-    if (q && ![ i.titulo, i.numero_radicado, i.nombre_reportado_por, i.tipo_nombre ]
+    if (q && ![ i.asunto, i.numero_radicado, i.nombre_radicador ]
       .some((f) => f?.toLowerCase().includes(q))) return false;
     return true;
   });
@@ -224,12 +225,12 @@ export function ReportsPage() {
                       {inc.numero_radicado ?? '—'}
                     </Typography>
                   </TableCell>
-                  <TableCell><SeveridadChip severidad={inc.severidad} /></TableCell>
+                  <TableCell>{inc.severidad ? <SeveridadChip severidad={inc.severidad} /> : '—'}</TableCell>
                   <TableCell>
-                    <Typography fontSize={13.5} fontWeight={500} color="#0F172A">{inc.titulo}</Typography>
+                    <Typography fontSize={13.5} fontWeight={500} color="#0F172A">{inc.asunto}</Typography>
                   </TableCell>
                   <TableCell sx={{ color: '#64748B' }}>
-                    {inc.nombre_reportado_por ?? '—'}
+                    {inc.nombre_radicador ?? '—'}
                   </TableCell>
                   <TableCell sx={{ color: '#64748B', fontVariantNumeric: 'tabular-nums' }}>
                     {dayjs(inc.created_at).format('DD/MM/YY · hh:mm A')}
@@ -269,11 +270,12 @@ export function ReportsPage() {
       {/* ── Drawer detalle ── */}
       <IncidenteDrawer
         incidenteId={selectedId}
-        tipoNombre={
-          selectedId
-            ? (allIncidentes.find((i) => i.id === selectedId)?.tipo_nombre ?? '')
-            : ''
-        }
+        tipoNombre={(() => {
+          if (!selectedId) return '';
+          const inc = allIncidentes.find((i) => i.id === selectedId);
+          if (!inc?.tipo_incidente_id) return '';
+          return tipos.find((t) => t.id === inc.tipo_incidente_id)?.nombre ?? '';
+        })()}
         onClose={() => setSelectedId(null)}
         onUpdated={() => incidentesQ.refetch()}
       />

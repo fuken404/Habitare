@@ -4,8 +4,9 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.pqrs import repository as repo
-from app.modules.pqrs.models import EstadoPQRS, PrioridadPQRS
+from app.modules.pqrs.models import EstadoPQRS, PrioridadPQRS, TipoPQRS
 from app.modules.pqrs.schemas import (
+    TipoIncidenteCreate, TipoIncidenteUpdate, TipoIncidenteResponse,
     CategoriaPQRSCreate, CategoriaPQRSUpdate, CategoriaPQRSResponse,
     PQRSCreate, PQRSUpdate, PQRSResponse, PQRSListResponse,
     MensajePQRSCreate, MensajePQRSResponse,
@@ -30,6 +31,47 @@ _TRANSICIONES: dict[EstadoPQRS, list[EstadoPQRS]] = {
   }
 
 _ESTADOS_FINALES = {EstadoPQRS.CERRADA, EstadoPQRS.RECHAZADA}
+
+# ======================================
+#        TIPO DE INCIDENTE
+# ======================================
+
+async def listar_tipos_incidente(
+    tenant_id: uuid.UUID, db: AsyncSession
+  ) -> list[TipoIncidenteResponse]:
+  items = await repo.get_tipos_incidente(db, tenant_id)
+  return [TipoIncidenteResponse.model_validate(t) for t in items]
+
+async def crear_tipo_incidente(
+    tenant_id: uuid.UUID, data: TipoIncidenteCreate, db: AsyncSession
+  ) -> TipoIncidenteResponse:
+  tipo = await repo.create_tipo_incidente(db, {"tenant_id": tenant_id, **data.model_dump()})
+  return TipoIncidenteResponse.model_validate(tipo)
+
+async def actualizar_tipo_incidente(
+    tipo_id: uuid.UUID, tenant_id: uuid.UUID,
+    data: TipoIncidenteUpdate, db: AsyncSession
+  ) -> TipoIncidenteResponse:
+  tipo = await repo.get_tipo_incidente_by_id(db, tipo_id, tenant_id)
+  if not tipo:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tipo de incidente no encontrado")
+  tipo = await repo.update_tipo_incidente(db, tipo, data.model_dump(exclude_none=True))
+  return TipoIncidenteResponse.model_validate(tipo)
+
+async def eliminar_tipo_incidente(
+    tipo_id: uuid.UUID, tenant_id: uuid.UUID, db: AsyncSession
+  ) -> None:
+  tipo = await repo.get_tipo_incidente_by_id(db, tipo_id, tenant_id)
+  if not tipo:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tipo de incidente no encontrado")
+  # Verificar que no haya PQRS de tipo incidente usando este tipo
+  pqrs_asociadas = await repo.get_pqrs_list(db, tenant_id, tipo=TipoPQRS.INCIDENTE)
+  if any(str(p.tipo_incidente_id) == str(tipo_id) for p in pqrs_asociadas):
+    raise HTTPException(
+      status_code=status.HTTP_409_CONFLICT,
+      detail="No se puede eliminar: existen incidentes asociados a este tipo"
+    )
+  await repo.delete_tipo_incidente(db, tipo)
 
 # ======================================
 #          CATEGORÍA PQRS
@@ -65,8 +107,9 @@ async def listar_pqrs(
     estado: EstadoPQRS | None,
     unidad_id: uuid.UUID | None,
     db: AsyncSession,
+    tipo: TipoPQRS | None = None,
   ) -> list[PQRSListResponse]:
-  items = await repo.get_pqrs_list(db, tenant_id, estado, unidad_id)
+  items = await repo.get_pqrs_list(db, tenant_id, estado, unidad_id, tipo)
   return [PQRSListResponse.from_orm_pqrs(p) for p in items]
 
 async def obtener_pqrs(
@@ -88,9 +131,16 @@ async def crear_pqrs(
     data: PQRSCreate,
     db: AsyncSession,
   ) -> PQRSResponse:
+  es_incidente = data.tipo == TipoPQRS.INCIDENTE
+  # Validar tipo_incidente_id cuando es incidente
+  if es_incidente and data.tipo_incidente_id:
+    tipo_inc = await repo.get_tipo_incidente_by_id(db, data.tipo_incidente_id, tenant_id)
+    if not tipo_inc:
+      raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tipo de incidente no encontrado")
   year = datetime.now().year
   count = await repo.count_pqrs_by_year(db, tenant_id, year)
-  numero_radicado = f"PQRS-{year}-{count + 1:03d}"
+  prefix = "INC" if es_incidente else "PQRS"
+  numero_radicado = f"{prefix}-{year}-{count + 1:03d}"
   pqrs = await repo.create_pqrs(db, {
     "tenant_id": tenant_id,
     "radicado_por": usuario_id,
@@ -109,6 +159,30 @@ async def crear_pqrs(
     await repo.create_adjunto(
       db, pqrs.id, adj.nombre, adj.mime_type, adj.contenido_b64
     )
+  # Notificar a seguridad cuando es incidente
+  if es_incidente:
+    try:
+      from app.modules.users.repository import get_usuario_ids_by_rol
+      from app.modules.notifications import service as notif_service
+      from app.modules.notifications.schemas import NotificacionCreate
+      from app.modules.notifications.models import TipoNotificacion, CanalNotificacion
+      seguridad_ids = await get_usuario_ids_by_rol(db, tenant_id, TipoRol.SEGURIDAD)
+      for seg_id in seguridad_ids:
+        await notif_service.crear_notificacion(
+          tenant_id,
+          NotificacionCreate(
+            usuario_id=seg_id,
+            titulo="Nueva novedad reportada",
+            mensaje=pqrs.asunto,
+            tipo=TipoNotificacion.ALERTA,
+            canal=CanalNotificacion.PUSH,
+            entidad_tipo="pqrs",
+            entidad_id=pqrs.id,
+          ),
+          db,
+        )
+    except Exception:
+      pass  # Las notificaciones son best-effort
   pqrs = await repo.get_pqrs_by_id(db, pqrs.id, tenant_id)
   return PQRSResponse.from_orm_pqrs(pqrs)
 

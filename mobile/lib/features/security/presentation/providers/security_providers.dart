@@ -14,16 +14,16 @@ final securityVisitorsProvider =
 
 final securityIncidentsProvider =
     FutureProvider.autoDispose<List<IncidentApiModel>>((ref) async {
-  final response = await ApiClient.instance.get('/incidents');
+  final response = await ApiClient.instance.get('/pqrs', queryParameters: {'tipo': 'incidente'});
   return (response.data as List)
       .map((e) => IncidentApiModel.fromJson(e as Map<String, dynamic>))
-      .where((i) => i.estado != 'cerrado' && i.estado != 'resuelto')
+      .where((i) => i.estado != 'cerrada' && i.estado != 'resuelta' && i.estado != 'rechazada')
       .toList();
 });
 
 final securityTiposProvider =
     FutureProvider.autoDispose<List<TipoIncidenteApiModel>>((ref) async {
-  final response = await ApiClient.instance.get('/incidents/tipos');
+  final response = await ApiClient.instance.get('/pqrs/tipos-incidente');
   return (response.data as List)
       .map((e) =>
           TipoIncidenteApiModel.fromJson(e as Map<String, dynamic>))
@@ -58,7 +58,7 @@ final visitorParkingProvider =
 final incidentDetailProvider =
     FutureProvider.autoDispose.family<Map<String, dynamic>, String>(
         (ref, incidentId) async {
-  final r = await ApiClient.instance.get('/incidents/$incidentId');
+  final r = await ApiClient.instance.get('/pqrs/$incidentId');
   return r.data as Map<String, dynamic>;
 });
 

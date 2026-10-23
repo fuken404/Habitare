@@ -4,9 +4,54 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, extract
 from sqlalchemy.orm import selectinload
 
-from app.modules.pqrs.models import CategoriaPQRS, PQRS, MensajePQRS, AdjuntoPQRS, EstadoPQRS
+from app.modules.pqrs.models import CategoriaPQRS, PQRS, MensajePQRS, AdjuntoPQRS, EstadoPQRS, TipoPQRS
+from app.modules.incidents.models import TipoIncidente
 from app.modules.tenants.models import Unidad, Torre
 from app.modules.users.models import Usuario
+
+# ======================================
+#        TIPO DE INCIDENTE
+# ======================================
+
+async def get_tipos_incidente(db: AsyncSession, tenant_id: uuid.UUID) -> list[TipoIncidente]:
+  result = await db.execute(
+    select(TipoIncidente)
+    .where(TipoIncidente.tenant_id == tenant_id)
+    .order_by(TipoIncidente.nombre)
+  )
+  return list(result.scalars().all())
+
+async def get_tipo_incidente_by_id(
+    db: AsyncSession, tipo_id: uuid.UUID, tenant_id: uuid.UUID
+  ) -> TipoIncidente | None:
+  result = await db.execute(
+    select(TipoIncidente).where(
+      TipoIncidente.id == tipo_id,
+      TipoIncidente.tenant_id == tenant_id,
+    )
+  )
+  return result.scalar_one_or_none()
+
+async def create_tipo_incidente(db: AsyncSession, data: dict) -> TipoIncidente:
+  tipo = TipoIncidente(**data)
+  db.add(tipo)
+  await db.flush()
+  await db.refresh(tipo)
+  return tipo
+
+async def update_tipo_incidente(
+    db: AsyncSession, tipo: TipoIncidente, data: dict
+  ) -> TipoIncidente:
+  for key, value in data.items():
+    setattr(tipo, key, value)
+  tipo.updated_at = datetime.now()
+  await db.flush()
+  await db.refresh(tipo)
+  return tipo
+
+async def delete_tipo_incidente(db: AsyncSession, tipo: TipoIncidente) -> None:
+  await db.delete(tipo)
+  await db.flush()
 
 # ======================================
 #          CATEGORÍA PQRS
@@ -55,6 +100,7 @@ async def get_pqrs_list(
     tenant_id: uuid.UUID,
     estado: EstadoPQRS | None = None,
     unidad_id: uuid.UUID | None = None,
+    tipo: TipoPQRS | None = None,
   ) -> list[PQRS]:
   query = (
     select(PQRS)
@@ -69,6 +115,8 @@ async def get_pqrs_list(
     query = query.where(PQRS.estado == estado)
   if unidad_id:
     query = query.where(PQRS.unidad_id == unidad_id)
+  if tipo:
+    query = query.where(PQRS.tipo == tipo)
   result = await db.execute(query)
   return list(result.scalars().all())
 

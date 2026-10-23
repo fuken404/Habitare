@@ -18,10 +18,11 @@ import {
 
 // ─── Tokens visuales ──────────────────────────────────────────────────────────
 const ESTADO_CFG: Record<EstadoIncidente, { label: string; bg: string; color: string }> = {
-  reportado:   { label: 'Reportado',   bg: '#FEF9C3', color: '#854D0E' },
-  en_atencion: { label: 'En atención', bg: '#FEF3C7', color: '#92400E' },
-  resuelto:    { label: 'Resuelto',    bg: '#DCFCE7', color: '#15803D' },
-  cerrado:     { label: 'Cerrado',     bg: '#F1F5F9', color: '#475569' },
+  abierta:    { label: 'Abierta',     bg: '#FEF9C3', color: '#854D0E' },
+  en_proceso: { label: 'En atención', bg: '#FEF3C7', color: '#92400E' },
+  resuelta:   { label: 'Resuelta',    bg: '#DCFCE7', color: '#15803D' },
+  cerrada:    { label: 'Cerrada',     bg: '#F1F5F9', color: '#475569' },
+  rechazada:  { label: 'Rechazada',   bg: '#FEF2F2', color: '#B91C1C' },
 };
 
 const SEVERIDAD_CFG: Record<SeveridadIncidente, { label: string; bg: string; color: string }> = {
@@ -32,10 +33,11 @@ const SEVERIDAD_CFG: Record<SeveridadIncidente, { label: string; bg: string; col
 };
 
 const ESTADO_NEXT_LABEL: Record<EstadoIncidente, string> = {
-  reportado:   'Marcar en atención',
-  en_atencion: 'Marcar como resuelto',
-  resuelto:    'Cerrar novedad',
-  cerrado:     '',
+  abierta:    'Marcar en atención',
+  en_proceso: 'Marcar como resuelto',
+  resuelta:   'Cerrar novedad',
+  cerrada:    '',
+  rechazada:  '',
 };
 
 function InfoRow({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
@@ -77,8 +79,8 @@ export function IncidenteDrawer({ incidenteId, tipoNombre, onClose, onUpdated }:
   });
 
   const notaMutation = useMutation({
-    mutationFn: (descripcion: string) =>
-      reportsApi.agregarActualizacion(incidenteId!, descripcion),
+    mutationFn: (contenido: string) =>
+      reportsApi.agregarActualizacion(incidenteId!, contenido),
     onSuccess: () => {
       setNota('');
       qc.invalidateQueries({ queryKey: ['incidente-detalle', incidenteId] });
@@ -97,9 +99,10 @@ export function IncidenteDrawer({ incidenteId, tipoNombre, onClose, onUpdated }:
     notaMutation.mutate(nota.trim());
   };
 
-  const estadoCfg  = data ? ESTADO_CFG[data.estado]       : null;
-  const sevCfg     = data ? SEVERIDAD_CFG[data.severidad]  : null;
-  const siguientes = data ? TRANSICIONES[data.estado]      : [];
+  const estadoCfg  = data ? ESTADO_CFG[data.estado]                          : null;
+  const sevCfg     = data && data.severidad ? SEVERIDAD_CFG[data.severidad]  : null;
+  const siguientes = data ? TRANSICIONES[data.estado]                        : [];
+  const mensajes   = data ? data.mensajes.filter((m) => !m.is_interno)       : [];
 
   return (
     <Drawer
@@ -133,7 +136,7 @@ export function IncidenteDrawer({ incidenteId, tipoNombre, onClose, onUpdated }:
           <Typography fontWeight={700} fontSize={15} color="#0F172A" lineHeight={1.35}
             sx={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
               WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-            {data?.titulo ?? ''}
+            {data?.asunto ?? ''}
           </Typography>
         </Box>
         <IconButton size="small" onClick={onClose}
@@ -164,10 +167,12 @@ export function IncidenteDrawer({ incidenteId, tipoNombre, onClose, onUpdated }:
                 fontWeight: 600, fontSize: 12, border: 'none', borderRadius: 1, height: 24,
               }} />
             )}
-            <Chip label={tipoNombre} size="small" sx={{
-              bgcolor: '#F1F5F9', color: '#475569',
-              fontWeight: 600, fontSize: 12, border: 'none', borderRadius: 1, height: 24,
-            }} />
+            {tipoNombre && (
+              <Chip label={tipoNombre} size="small" sx={{
+                bgcolor: '#F1F5F9', color: '#475569',
+                fontWeight: 600, fontSize: 12, border: 'none', borderRadius: 1, height: 24,
+              }} />
+            )}
           </Box>
 
           {/* ── Info ── */}
@@ -207,34 +212,38 @@ export function IncidenteDrawer({ incidenteId, tipoNombre, onClose, onUpdated }:
               Bitácora
             </Typography>
 
-            <Box display="flex" flexDirection="column" gap={0}>
-              {data.actualizaciones.map((act, idx) => (
-                <Box key={act.id} display="flex" gap={1.5}>
-                  {/* línea vertical */}
-                  <Box display="flex" flexDirection="column" alignItems="center">
-                    <Box sx={{
-                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      bgcolor: idx === 0 ? '#2563EB' : '#CBD5E1', mt: '5px',
-                    }} />
-                    {idx < data.actualizaciones.length - 1 && (
-                      <Box sx={{ width: 1, flex: 1, bgcolor: '#E2E8F0', minHeight: 16, mt: 0.5 }} />
-                    )}
+            {mensajes.length === 0 ? (
+              <Typography fontSize={13} color="#94A3B8">Sin notas todavía.</Typography>
+            ) : (
+              <Box display="flex" flexDirection="column" gap={0}>
+                {mensajes.map((msg, idx) => (
+                  <Box key={msg.id} display="flex" gap={1.5}>
+                    <Box display="flex" flexDirection="column" alignItems="center">
+                      <Box sx={{
+                        width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                        bgcolor: idx === 0 ? '#2563EB' : '#CBD5E1', mt: '5px',
+                      }} />
+                      {idx < mensajes.length - 1 && (
+                        <Box sx={{ width: 1, flex: 1, bgcolor: '#E2E8F0', minHeight: 16, mt: 0.5 }} />
+                      )}
+                    </Box>
+                    <Box pb={idx < mensajes.length - 1 ? 2 : 0}>
+                      <Typography fontSize={12} color="#94A3B8" mb={0.25}>
+                        {msg.nombre_autor && `${msg.nombre_autor} · `}
+                        {dayjs(msg.created_at).format('DD/MM/YY · hh:mm A')}
+                      </Typography>
+                      <Typography fontSize={13.5} color="#334155" lineHeight={1.5}>
+                        {msg.contenido}
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Box pb={idx < data.actualizaciones.length - 1 ? 2 : 0}>
-                    <Typography fontSize={12} color="#94A3B8" mb={0.25}>
-                      {dayjs(act.created_at).format('DD/MM/YY · hh:mm A')}
-                    </Typography>
-                    <Typography fontSize={13.5} color="#334155" lineHeight={1.5}>
-                      {act.descripcion}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
+                ))}
+              </Box>
+            )}
           </Box>
 
           {/* ── Agregar nota ── */}
-          {data.estado !== 'cerrado' && (
+          {data.estado !== 'cerrada' && data.estado !== 'rechazada' && (
             <>
               <Divider sx={{ mx: 3, borderColor: '#E2E8F0' }} />
               <Box sx={{ px: 3, py: 2.5 }}>

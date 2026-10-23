@@ -50,6 +50,20 @@ const _menuItems = [
     bg: AppColors.dangerBg,
     route: '/incidents/new',
   ),
+  _MenuItem(
+    icon: Icons.engineering_outlined,
+    label: 'Servicios Externos',
+    color: Color(0xFF0369A1),
+    bg: Color(0xFFE0F2FE),
+    route: '/external-services',
+  ),
+  _MenuItem(
+    icon: Icons.calendar_month_outlined,
+    label: 'Citas Admin',
+    color: AppColors.purpleText,
+    bg: AppColors.purpleBg,
+    route: '/appointments',
+  ),
 ];
 
 class MoreMenuScreen extends ConsumerWidget {

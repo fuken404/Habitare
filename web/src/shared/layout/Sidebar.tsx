@@ -4,8 +4,9 @@ import {
 } from '@mui/material';
 import {
   Dashboard, ReportProblem, People, LocalParking, Pool,
-  Inventory, SwapHoriz, Home, Group, Warning, Receipt,
+  Inventory, Home, Group, Receipt,
   Campaign, Forum, Business, Logout, ChevronLeft, ChevronRight,
+  EngineeringOutlined, LocalShipping, CalendarMonth,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/core/auth/authStore';
@@ -19,7 +20,8 @@ const recepcionNav: NavItem[] = [
   { label: 'Parqueaderos',       icon: <LocalParking />, path: '/recepcion/parqueadero' },
   { label: 'Zonas Comunes',      icon: <Pool />,         path: '/recepcion/zonas-comunes' },
   { label: 'Correspondencia',    icon: <Inventory />,    path: '/recepcion/paquetes' },
-  { label: 'Ingresos y Salidas', icon: <SwapHoriz />,    path: '/recepcion/ingresos-salidas' },
+  { label: 'Servicios Externos', icon: <EngineeringOutlined />, path: '/recepcion/servicios-externos' },
+  { label: 'Trasteos',           icon: <LocalShipping />,       path: '/recepcion/trasteos' },
 ];
 
 const adminNav: NavItem[] = [
@@ -27,12 +29,14 @@ const adminNav: NavItem[] = [
   { label: 'Residentes',     icon: <People />,       path: '/admin/residentes' },
   { label: 'Unidades',       icon: <Home />,         path: '/admin/unidades' },
   { label: 'Usuarios',       icon: <Group />,        path: '/admin/usuarios' },
-  { label: 'Incidentes',     icon: <Warning />,       path: '/admin/incidentes' },
   { label: 'Zonas Comunes',  icon: <Pool />,          path: '/admin/zonas-comunes' },
   { label: 'Parqueaderos',   icon: <LocalParking />,  path: '/admin/parqueaderos' },
   { label: 'Facturación',    icon: <Receipt />,       path: '/admin/facturacion' },
   { label: 'Comunicaciones', icon: <Campaign />,     path: '/admin/comunicaciones' },
-  { label: 'PQRS',           icon: <Forum />,        path: '/admin/pqrs' },
+  { label: 'PQRS',              icon: <Forum />,              path: '/admin/pqrs' },
+  { label: 'Servicios Externos', icon: <EngineeringOutlined />, path: '/admin/servicios-externos' },
+  { label: 'Trasteos',           icon: <LocalShipping />,       path: '/admin/trasteos' },
+  { label: 'Citas',              icon: <CalendarMonth />,        path: '/admin/citas' },
 ];
 
 const superadminNav: NavItem[] = [

@@ -1,7 +1,27 @@
 import uuid
 from datetime import datetime
 from pydantic import BaseModel
-from app.modules.pqrs.models import EstadoPQRS, PrioridadPQRS, TipoPQRS
+from app.modules.pqrs.models import EstadoPQRS, PrioridadPQRS, TipoPQRS, SeveridadIncidente
+
+# ======================================
+#        TIPO DE INCIDENTE
+# ======================================
+
+class TipoIncidenteCreate(BaseModel):
+  nombre: str
+  descripcion: str | None = None
+
+class TipoIncidenteUpdate(BaseModel):
+  nombre: str | None = None
+  descripcion: str | None = None
+
+class TipoIncidenteResponse(BaseModel):
+  id: uuid.UUID
+  nombre: str
+  descripcion: str | None
+  created_at: datetime
+
+  model_config = {"from_attributes": True}
 
 # ======================================
 #          CATEGORÍA PQRS
@@ -52,14 +72,19 @@ class PQRSCreate(BaseModel):
   asunto: str
   descripcion: str
   prioridad: PrioridadPQRS = PrioridadPQRS.MEDIA
-  unidad_id: uuid.UUID
+  unidad_id: uuid.UUID | None = None
   adjuntos: list[AdjuntoCreate] = []
+  # Campos específicos de incidentes
+  ubicacion: str | None = None
+  severidad: SeveridadIncidente | None = None
+  tipo_incidente_id: uuid.UUID | None = None
 
 class PQRSUpdate(BaseModel):
   asunto: str | None = None
   descripcion: str | None = None
   prioridad: PrioridadPQRS | None = None
   estado: EstadoPQRS | None = None
+  severidad: SeveridadIncidente | None = None
 
 class MensajePQRSResponse(BaseModel):
   id: uuid.UUID
@@ -81,14 +106,17 @@ class MensajePQRSResponse(BaseModel):
 class PQRSResponse(BaseModel):
   id: uuid.UUID
   tenant_id: uuid.UUID
-  unidad_id: uuid.UUID
+  unidad_id: uuid.UUID | None
   categoria_id: uuid.UUID | None
+  tipo_incidente_id: uuid.UUID | None
   tipo: TipoPQRS | None
   radicado_por: uuid.UUID
   asunto: str
   descripcion: str
   estado: EstadoPQRS
   prioridad: PrioridadPQRS
+  severidad: SeveridadIncidente | None
+  ubicacion: str | None
   numero_radicado: str | None
   fecha_primera_respuesta: datetime | None
   fecha_resolucion: datetime | None
@@ -109,13 +137,16 @@ class PQRSListResponse(BaseModel):
   id: uuid.UUID
   numero_radicado: str | None
   categoria_id: uuid.UUID | None
+  tipo_incidente_id: uuid.UUID | None
   tipo: TipoPQRS | None
   asunto: str
   estado: EstadoPQRS
   prioridad: PrioridadPQRS
+  severidad: SeveridadIncidente | None
+  ubicacion: str | None
   radicado_por: uuid.UUID
   nombre_radicador: str | None = None
-  unidad_id: uuid.UUID
+  unidad_id: uuid.UUID | None
   numero_unidad: str | None = None
   nombre_torre: str | None = None
   created_at: datetime

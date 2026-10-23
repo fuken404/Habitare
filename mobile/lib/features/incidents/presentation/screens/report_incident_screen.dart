@@ -47,9 +47,10 @@ class _ReportIncidentScreenState extends ConsumerState<ReportIncidentScreen> {
     setState(() { _isLoading = true; _errorMsg = null; });
 
     try {
-      final res = await ApiClient.instance.post('/incidents', data: {
-        'tipo_id': _tipoId,
-        'titulo': _tituloCtrl.text.trim(),
+      final res = await ApiClient.instance.post('/pqrs', data: {
+        'tipo': 'incidente',
+        'tipo_incidente_id': _tipoId,
+        'asunto': _tituloCtrl.text.trim(),
         'descripcion': _descripcionCtrl.text.trim(),
         'ubicacion': _lugarCtrl.text.trim().isEmpty ? null : _lugarCtrl.text.trim(),
         'severidad': _isUrgent ? 'critica' : 'media',

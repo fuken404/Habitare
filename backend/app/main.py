@@ -14,7 +14,6 @@ from app.modules.visitors.router import router as visitors_router
 from app.modules.packages.router import router as packages_router
 from app.modules.parking.router import router as parking_router
 from app.modules.visitor_parking.router import router as visitor_parking_router
-from app.modules.incidents.router import router as incidents_router
 from app.modules.pqrs.router import router as pqrs_router
 from app.modules.common_areas.router import router as common_areas_router
 from app.modules.shifts.router import router as shifts_router
@@ -25,6 +24,8 @@ from app.modules.notifications.router import router as notifications_router
 from app.modules.audit.router import router as audit_router
 from app.modules.billing.router import router as billing_router
 from app.modules.subscriptions.router import router as subscriptions_router
+from app.modules.trasteos.router import router as trasteos_router
+from app.modules.appointments.router import router as appointments_router
 
 # --- Lifespan ---
 # Reemplaza los eventos on_startup / on_shutdown (deprecados en FastAPI >= 0.93)
@@ -67,7 +68,6 @@ app.include_router(visitors_router)
 app.include_router(packages_router)
 app.include_router(parking_router)
 app.include_router(visitor_parking_router)
-app.include_router(incidents_router)
 app.include_router(pqrs_router)
 app.include_router(common_areas_router)
 app.include_router(shifts_router)
@@ -78,6 +78,8 @@ app.include_router(notifications_router)
 app.include_router(audit_router)
 app.include_router(billing_router)
 app.include_router(subscriptions_router)
+app.include_router(trasteos_router)
+app.include_router(appointments_router)
 
 # --- Health check ---
 @app.get("/health", tags=["Sistema"])

@@ -6,8 +6,9 @@ from app.core.database.session import get_db
 from app.dependencies import require_roles, get_tenant_id
 from app.modules.users.models import TipoRol
 from app.modules.auth.schemas import MeResponse
-from app.modules.pqrs.models import EstadoPQRS
+from app.modules.pqrs.models import EstadoPQRS, TipoPQRS
 from app.modules.pqrs.schemas import (
+    TipoIncidenteCreate, TipoIncidenteUpdate, TipoIncidenteResponse,
     CategoriaPQRSCreate, CategoriaPQRSUpdate, CategoriaPQRSResponse,
     PQRSCreate, PQRSUpdate, PQRSResponse, PQRSListResponse,
     MensajePQRSCreate, MensajePQRSResponse,
@@ -17,8 +18,52 @@ from app.modules.pqrs import service as pqrs_service
 router = APIRouter(prefix="/pqrs", tags=["PQRS"])
 
 _ROLES_ADMIN    = (TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
+_ROLES_UPDATE   = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
 _ROLES_TODOS    = (TipoRol.RESIDENTE, TipoRol.SEGURIDAD, TipoRol.RECEPCION,
                     TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
+
+# ======================================
+#        TIPOS DE INCIDENTE
+# ======================================
+
+_ROLES_REPORTE = (TipoRol.SEGURIDAD, TipoRol.RECEPCION, TipoRol.ADMINISTRACION,
+                   TipoRol.SUPERADMIN, TipoRol.RESIDENTE)
+
+@router.get("/tipos-incidente", response_model=list[TipoIncidenteResponse])
+async def listar_tipos_incidente(
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    _: MeResponse = Depends(require_roles(*_ROLES_REPORTE)),
+    db: AsyncSession = Depends(get_db),
+  ):
+  return await pqrs_service.listar_tipos_incidente(tenant_id, db)
+
+@router.post("/tipos-incidente", response_model=TipoIncidenteResponse, status_code=status.HTTP_201_CREATED)
+async def crear_tipo_incidente(
+    body: TipoIncidenteCreate,
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    _: MeResponse = Depends(require_roles(*_ROLES_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+  ):
+  return await pqrs_service.crear_tipo_incidente(tenant_id, body, db)
+
+@router.patch("/tipos-incidente/{tipo_id}", response_model=TipoIncidenteResponse)
+async def actualizar_tipo_incidente(
+    tipo_id: uuid.UUID,
+    body: TipoIncidenteUpdate,
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    _: MeResponse = Depends(require_roles(*_ROLES_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+  ):
+  return await pqrs_service.actualizar_tipo_incidente(tipo_id, tenant_id, body, db)
+
+@router.delete("/tipos-incidente/{tipo_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def eliminar_tipo_incidente(
+    tipo_id: uuid.UUID,
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
+    _: MeResponse = Depends(require_roles(*_ROLES_ADMIN)),
+    db: AsyncSession = Depends(get_db),
+  ):
+  await pqrs_service.eliminar_tipo_incidente(tipo_id, tenant_id, db)
 
 # ======================================
 #         CATEGORÍAS (globales)
@@ -57,11 +102,15 @@ async def actualizar_categoria(
 async def listar_pqrs(
     estado: EstadoPQRS | None = Query(default=None),
     unidad_id: uuid.UUID | None = Query(default=None),
+    tipo: TipoPQRS | None = Query(default=None),
     tenant_id: uuid.UUID = Depends(get_tenant_id),
-    _: MeResponse = Depends(require_roles(*_ROLES_TODOS)),
+    current_user: MeResponse = Depends(require_roles(*_ROLES_TODOS)),
     db: AsyncSession = Depends(get_db),
   ):
-  return await pqrs_service.listar_pqrs(tenant_id, estado, unidad_id, db)
+  effective_unidad_id = unidad_id
+  if current_user.rol == TipoRol.RESIDENTE and current_user.unidad_id is not None:
+    effective_unidad_id = current_user.unidad_id
+  return await pqrs_service.listar_pqrs(tenant_id, estado, effective_unidad_id, db, tipo)
 
 @router.get("/{pqrs_id}", response_model=PQRSResponse)
 async def obtener_pqrs(
@@ -91,7 +140,7 @@ async def actualizar_pqrs(
     pqrs_id: uuid.UUID,
     body: PQRSUpdate,
     tenant_id: uuid.UUID = Depends(get_tenant_id),
-    current_user: MeResponse = Depends(require_roles(*_ROLES_ADMIN)),
+    current_user: MeResponse = Depends(require_roles(*_ROLES_UPDATE)),
     db: AsyncSession = Depends(get_db),
   ):
   """

@@ -14,10 +14,12 @@ from app.modules.external_personnel.schemas import (
   )
 from app.modules.external_personnel import service as ext_service
 
-router = APIRouter(prefix="/external-personnel", tags=["Personal Externo"])
+router = APIRouter(prefix="/external-services", tags=["Servicios Externos"])
 
 _ROLES_ADMIN = (TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
 _ROLES_STAFF = (TipoRol.SEGURIDAD, TipoRol.RECEPCION,
+                TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
+_ROLES_TODOS = (TipoRol.RESIDENTE, TipoRol.SEGURIDAD, TipoRol.RECEPCION,
                 TipoRol.ADMINISTRACION, TipoRol.SUPERADMIN)
 
 @router.get("", response_model=list[IngresoExternoListResponse])
@@ -27,7 +29,7 @@ async def listar_ingresos(
     desde: datetime | None = Query(default=None),
     hasta: datetime | None = Query(default=None),
     tenant_id: uuid.UUID = Depends(get_tenant_id),
-    _: MeResponse = Depends(require_roles(*_ROLES_STAFF)),
+    _: MeResponse = Depends(require_roles(*_ROLES_TODOS)),
     db: AsyncSession = Depends(get_db),
   ):
   return await ext_service.listar_ingresos(tenant_id, activos, tipo_personal, desde, hasta, db)
@@ -36,7 +38,7 @@ async def listar_ingresos(
 async def obtener_ingreso(
     ingreso_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_tenant_id),
-    _: MeResponse = Depends(require_roles(*_ROLES_STAFF)),
+    _: MeResponse = Depends(require_roles(*_ROLES_TODOS)),
     db: AsyncSession = Depends(get_db),
   ):
   return await ext_service.obtener_ingreso(ingreso_id, tenant_id, db)
@@ -45,7 +47,7 @@ async def obtener_ingreso(
 async def registrar_ingreso(
     body: IngresoExternoCreate,
     tenant_id: uuid.UUID = Depends(get_tenant_id),
-    current_user: MeResponse = Depends(require_roles(*_ROLES_STAFF)),
+    current_user: MeResponse = Depends(require_roles(*_ROLES_TODOS)),
     db: AsyncSession = Depends(get_db),
   ):
   return await ext_service.registrar_ingreso(tenant_id, current_user.id, body, db)

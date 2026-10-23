@@ -4,8 +4,11 @@ class PqrsModel {
   final String estado;
   final String prioridad;
   final String? tipo;
+  final String? tipoIncidenteId;
   final String? categoriaId;
   final String? numeroRadicado;
+  final String? severidad;
+  final String? ubicacion;
   final String radicadoPor;
   final String createdAt;
 
@@ -15,8 +18,11 @@ class PqrsModel {
     required this.estado,
     required this.prioridad,
     this.tipo,
+    this.tipoIncidenteId,
     this.categoriaId,
     this.numeroRadicado,
+    this.severidad,
+    this.ubicacion,
     required this.radicadoPor,
     required this.createdAt,
   });
@@ -28,8 +34,11 @@ class PqrsModel {
       estado: json['estado'] as String,
       prioridad: json['prioridad'] as String,
       tipo: json['tipo'] as String?,
+      tipoIncidenteId: json['tipo_incidente_id'] as String?,
       categoriaId: json['categoria_id'] as String?,
       numeroRadicado: json['numero_radicado'] as String?,
+      severidad: json['severidad'] as String?,
+      ubicacion: json['ubicacion'] as String?,
       radicadoPor: json['radicado_por'] as String,
       createdAt: json['created_at'] as String,
     );
@@ -106,8 +115,11 @@ class PqrsDetailModel {
   final String estado;
   final String prioridad;
   final String? tipo;
+  final String? tipoIncidenteId;
   final String? categoriaId;
   final String? numeroRadicado;
+  final String? severidad;
+  final String? ubicacion;
   final String radicadoPor;
   final String createdAt;
   final List<MensajePqrsModel> mensajes;
@@ -120,8 +132,11 @@ class PqrsDetailModel {
     required this.estado,
     required this.prioridad,
     this.tipo,
+    this.tipoIncidenteId,
     this.categoriaId,
     this.numeroRadicado,
+    this.severidad,
+    this.ubicacion,
     required this.radicadoPor,
     required this.createdAt,
     required this.mensajes,
@@ -136,8 +151,11 @@ class PqrsDetailModel {
       estado: json['estado'] as String,
       prioridad: json['prioridad'] as String,
       tipo: json['tipo'] as String?,
+      tipoIncidenteId: json['tipo_incidente_id'] as String?,
       categoriaId: json['categoria_id'] as String?,
       numeroRadicado: json['numero_radicado'] as String?,
+      severidad: json['severidad'] as String?,
+      ubicacion: json['ubicacion'] as String?,
       radicadoPor: json['radicado_por'] as String,
       createdAt: json['created_at'] as String,
       mensajes: (json['mensajes'] as List<dynamic>)

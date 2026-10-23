@@ -128,9 +128,10 @@ class _CrearReporteTabState extends ConsumerState<_CrearReporteTab> {
         tipos.firstWhere((t) => t.id == _tipoId).nombre;
     setState(() => _isLoading = true);
     try {
-      await ApiClient.instance.post('/incidents', data: {
-        'tipo_id': _tipoId,
-        'titulo': '$tipoNombre en ${_ubicacionCtrl.text.trim()}',
+      await ApiClient.instance.post('/pqrs', data: {
+        'tipo': 'incidente',
+        'tipo_incidente_id': _tipoId,
+        'asunto': '$tipoNombre en ${_ubicacionCtrl.text.trim()}',
         'descripcion': _descripcionCtrl.text.trim(),
         'ubicacion': _ubicacionCtrl.text.trim(),
         'severidad': _severidad,
@@ -558,10 +559,12 @@ class _ReporteDetailSheet extends ConsumerWidget {
   final IncidentApiModel incident;
   final String tipoNombre;
 
-  Future<void> _marcarResuelta(BuildContext context, WidgetRef ref) async {
+  Future<void> _avanzarEstado(BuildContext context, WidgetRef ref) async {
+    // abierta → en_proceso, en_proceso → resuelta
+    final nuevoEstado = incident.estado == 'abierta' ? 'en_proceso' : 'resuelta';
     try {
       await ApiClient.instance
-          .patch('/incidents/${incident.id}', data: {'estado': 'cerrado'});
+          .patch('/pqrs/${incident.id}', data: {'estado': nuevoEstado});
       ref.invalidate(securityIncidentsProvider);
       if (context.mounted) Navigator.pop(context);
     } on DioException catch (e) {
@@ -622,14 +625,16 @@ class _ReporteDetailSheet extends ConsumerWidget {
           const SizedBox(height: 8),
           _FetchIncidentDetail(incidentId: incident.id),
           const SizedBox(height: 20),
-          if (incident.estado != 'resuelto' && incident.estado != 'cerrado')
+          if (incident.estado != 'resuelta' && incident.estado != 'cerrada' && incident.estado != 'rechazada')
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => _marcarResuelta(context, ref),
+                onPressed: () => _avanzarEstado(context, ref),
                 style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary),
-                child: const Text('Marcar como resuelta'),
+                child: Text(incident.estado == 'abierta'
+                    ? 'Atender novedad'
+                    : 'Marcar como resuelta'),
               ),
             ),
         ],

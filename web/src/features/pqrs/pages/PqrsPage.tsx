@@ -8,16 +8,17 @@ import {
 } from '@mui/material';
 import {
   FilterList, Close, CalendarToday, Person,
-  Send, Lock, Inbox, AttachFile,
+  Send, Lock, Inbox, AttachFile, LocationOn,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import { SearchBar } from '@/shared/components/SearchBar';
+import { UserDetailDrawer } from '@/shared/components/UserDetailDrawer';
 import { useAuthStore } from '@/core/auth/authStore';
 import {
   pqrsApi,
-  type PqrsListItem, type EstadoPQRS, type PrioridadPQRS, type TipoPQRS,
+  type PqrsListItem, type EstadoPQRS, type PrioridadPQRS, type TipoPQRS, type SeveridadPQRS,
 } from '../api/pqrsApi';
 
 dayjs.locale('es');
@@ -36,6 +37,14 @@ const TIPO_CFG: Record<TipoPQRS, { label: string; bg: string; color: string }> =
   queja:      { label: 'Queja',      bg: '#FFEDD5', color: '#C2410C' },
   reclamo:    { label: 'Reclamo',    bg: '#FEE2E2', color: '#DC2626' },
   sugerencia: { label: 'Sugerencia', bg: '#F3E8FF', color: '#7C3AED' },
+  incidente:  { label: 'Incidente',  bg: '#FFF7ED', color: '#EA580C' },
+};
+
+const SEVERIDAD_CFG: Record<SeveridadPQRS, { label: string; bg: string; color: string }> = {
+  baja:    { label: 'Sev. Baja',    bg: '#DCFCE7', color: '#15803D' },
+  media:   { label: 'Sev. Media',   bg: '#FEF9C3', color: '#A16207' },
+  alta:    { label: 'Sev. Alta',    bg: '#FFEDD5', color: '#C2410C' },
+  critica: { label: 'Sev. Crítica', bg: '#FEE2E2', color: '#DC2626' },
 };
 
 const PRIORIDAD_CFG: Record<PrioridadPQRS, { label: string; bg: string; color: string }> = {
@@ -102,9 +111,10 @@ function PqrsDrawer({
     },
   });
 
-  const estadoCfg = pqrs ? ESTADO_CFG[pqrs.estado] : null;
-  const tipoCfg   = pqrs?.tipo ? TIPO_CFG[pqrs.tipo] : null;
-  const priorCfg  = pqrs ? PRIORIDAD_CFG[pqrs.prioridad] : null;
+  const estadoCfg    = pqrs ? ESTADO_CFG[pqrs.estado] : null;
+  const tipoCfg      = pqrs?.tipo ? TIPO_CFG[pqrs.tipo] : null;
+  const priorCfg     = pqrs ? PRIORIDAD_CFG[pqrs.prioridad] : null;
+  const severidadCfg = pqrs?.severidad ? SEVERIDAD_CFG[pqrs.severidad] : null;
   const siguiente = pqrs ? SIGUIENTE_ESTADO[pqrs.estado] : null;
   const esFinal   = pqrs && ['cerrada', 'rechazada'].includes(pqrs.estado);
 
@@ -145,6 +155,11 @@ function PqrsDrawer({
                     sx={{ bgcolor: priorCfg.bg, color: priorCfg.color,
                       fontWeight: 600, fontSize: 11, borderRadius: 1, border: 'none' }} />
                 )}
+                {severidadCfg && (
+                  <Chip label={severidadCfg.label} size="small"
+                    sx={{ bgcolor: severidadCfg.bg, color: severidadCfg.color,
+                      fontWeight: 700, fontSize: 11, borderRadius: 1, border: 'none' }} />
+                )}
               </Box>
             </Box>
             <IconButton onClick={onClose} size="small" sx={{ color: '#94A3B8', flexShrink: 0 }}>
@@ -161,6 +176,12 @@ function PqrsDrawer({
                 {pqrs.nombre_torre && ` (${pqrs.nombre_torre})`}
               </Typography>
             </Box>
+            {pqrs.ubicacion && (
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <LocationOn sx={{ fontSize: 13, color: '#94A3B8' }} />
+                <Typography fontSize={12} color="#64748B">{pqrs.ubicacion}</Typography>
+              </Box>
+            )}
             <Box display="flex" alignItems="center" gap={0.5}>
               <CalendarToday sx={{ fontSize: 13, color: '#94A3B8' }} />
               <Typography fontSize={12} color="#64748B">
@@ -358,10 +379,11 @@ export function PqrsPage() {
   const [tipoFilter,   setTipoFilter]   = useState<TipoPQRS | ''>('');
   const [page,         setPage]         = useState(0);
   const [selected,     setSelected]     = useState<PqrsListItem | null>(null);
+  const [userDrawer,   setUserDrawer]   = useState<{ userId: string; unidadLabel: string | null } | null>(null);
 
   const { data: pqrsList = [], isLoading } = useQuery({
     queryKey: ['pqrs', estadoFilter],
-    queryFn:  () => pqrsApi.list(estadoFilter || undefined),
+    queryFn:  () => pqrsApi.list(estadoFilter ? { estado: estadoFilter } : undefined),
   });
 
   const q = search.toLowerCase();
@@ -475,7 +497,21 @@ export function PqrsPage() {
                         {p.asunto}
                       </Typography>
                       {p.nombre_radicador && (
-                        <Typography fontSize={11.5} color="#94A3B8">{p.nombre_radicador}</Typography>
+                        isAdmin ? (
+                          <Button size="small" variant="text"
+                            onClick={e => {
+                              e.stopPropagation();
+                              const label = [p.numero_unidad && `Apto ${p.numero_unidad}`, p.nombre_torre]
+                                .filter(Boolean).join(' · ') || null;
+                              setUserDrawer({ userId: p.radicado_por, unidadLabel: label });
+                            }}
+                            sx={{ p: 0, minWidth: 0, fontSize: 11.5, color: '#64748B', textTransform: 'none',
+                              '&:hover': { color: '#2563EB', bgcolor: 'transparent' } }}>
+                            {p.nombre_radicador}
+                          </Button>
+                        ) : (
+                          <Typography fontSize={11.5} color="#94A3B8">{p.nombre_radicador}</Typography>
+                        )
                       )}
                     </TableCell>
                     <TableCell sx={TD_SX}>
@@ -524,6 +560,44 @@ export function PqrsPage() {
       </Box>
 
       <PqrsDrawer pqrs={selectedActualizado} isAdmin={isAdmin} onClose={() => setSelected(null)} />
+
+      <UserDetailDrawer
+        userId={userDrawer?.userId ?? null}
+        unidadLabel={userDrawer?.unidadLabel}
+        onClose={() => setUserDrawer(null)}
+      >
+        {userDrawer && pqrsList
+          .filter(p => p.radicado_por === userDrawer.userId)
+          .slice(0, 10)
+          .map(p => {
+            const est  = ESTADO_CFG[p.estado];
+            const tipo = p.tipo ? TIPO_CFG[p.tipo] : null;
+            return (
+              <Box key={p.id}
+                onClick={() => { setUserDrawer(null); setSelected(p); }}
+                sx={{ p: 1.5, borderRadius: 1.5, border: '1px solid #E2E8F0',
+                  bgcolor: 'white', cursor: 'pointer',
+                  '&:hover': { borderColor: '#CBD5E1', bgcolor: '#F8FAFC' } }}>
+                <Box display="flex" gap={0.75} mb={0.5} flexWrap="wrap">
+                  {tipo && (
+                    <Chip label={tipo.label} size="small"
+                      sx={{ bgcolor: tipo.bg, color: tipo.color, fontWeight: 700, fontSize: 10.5, borderRadius: 1, border: 'none', height: 18 }} />
+                  )}
+                  <Chip label={est.label} size="small"
+                    sx={{ bgcolor: est.bg, color: est.color, fontWeight: 600, fontSize: 10.5, borderRadius: 1, border: 'none', height: 18 }} />
+                </Box>
+                <Typography fontSize={13} fontWeight={600} color="#0F172A"
+                  sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.asunto}
+                </Typography>
+                <Typography fontSize={11} color="#94A3B8" mt={0.25}>
+                  {dayjs(p.created_at).format('DD/MM/YY')}
+                  {p.numero_radicado && ` · ${p.numero_radicado}`}
+                </Typography>
+              </Box>
+            );
+          })}
+      </UserDetailDrawer>
     </Box>
   );
 }
